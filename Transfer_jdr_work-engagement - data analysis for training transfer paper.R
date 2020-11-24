@@ -29,31 +29,7 @@ work_data2 <- work_data %>%
   filter(Study == 2) %>% 
   filter(Open_or_Closed_Skills == "Open") %>% 
   filter(timediff >= 13 & timediff <= 120) %>%
-  filter(T_length_1 != "NA") %>%
-  mutate(Reason = case_when(T_reason == "1" ~ "2", # voluntary
-                            T_reason == "2" ~ "0", # mandatory
-                            T_reason == "3" ~ "1", # mixed
-                            TRUE ~ as.character(T_reason))) %>% 
-  rename(ClassroomSession = T_struct_1, ViaEmail = T_struct_2, ViaOnline = T_struct_3,
-         BeforeSession = T_pre_post_1, AfterSession = T_pre_post_2) %>%
-  mutate(ClassroomSession = case_when(ClassroomSession == "1" ~ "1", # yes
-                                      ClassroomSession == "2" ~ "0", # no
-                                      TRUE ~ as.character(ClassroomSession))) %>% 
-  mutate(BeforeSession = case_when(BeforeSession == "1" ~ "1", # yes
-                                   BeforeSession == "2" ~ "0", # no
-                                   TRUE ~ as.character(BeforeSession))) %>% 
-  mutate(AfterSession = case_when(AfterSession == "1" ~ "1", # yes
-                                  AfterSession == "2" ~ "0", # no
-                                  TRUE ~ as.character(AfterSession))) %>% 
-  mutate(BefAfSession = case_when(BeforeSession == "1" | AfterSession == "1" ~ "1", # yes
-                                  BeforeSession == "0" & AfterSession == "0" ~ "0", # no
-                                  TRUE ~ as.character(BeforeSession))) %>% 
-  mutate(cent_sup = supervisor - mean(supervisor)) %>% 
-  mutate(cent_reason = as.numeric(Reason) - mean(as.numeric(Reason))) %>% 
-  mutate(cent_management = as.numeric(Management) - mean(as.numeric(Management))) %>% 
-  mutate(cent_timediff = timediff - mean(timediff)) %>% 
-  mutate(cent_proglength = T_length_1 - mean(T_length_1)) 
-
+  filter(T_length_1 != "NA")
 
 
 ## CRONBACH APLHA calculation
