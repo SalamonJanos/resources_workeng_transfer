@@ -6,7 +6,7 @@ library(lavaan) # for calculating Cronbach alpha
 library(semTools)  # for calculating Cronbach alpha
 library(semPlot)  # for making SEM path models
 library(flextable) # for making regression table and descriptive table publication ready
-library(userfriendlyscience) # for the measurement of internal consistency reliability (Cronbach's alpha and Revelle’s omega total)
+
 
 # import database
 work_data <- read_sav("data/Transfer_factors.sav")
@@ -22,33 +22,56 @@ work_data2 <- work_data %>%
   filter(T_length_1 != "NA")
 
 
-## internal consistency reliability (Cronbach's alpha and Revelle’s omega total) calculation
+## internal consistency reliability (Cronbach's alpha and omega total) calculation
 ## --------------------------------------------------------------------------------------------------------
-## internal consistency reliability (Cronbach's alpha and Revelle’s omega total) calculation
+## internal consistency reliability (Cronbach's alpha and omega total) calculation
 
-# Motivation
-scaleStructure(work_data2, items = c("mot26", "mot28", "mot212"),
-               ci = FALSE, poly = FALSE)
+# calculating Cronbach alpha for Motivation
+motivation_factor <- '
+motiv_factor =~ mot26 + mot28 + mot212'
 
-# Opportunity
-scaleStructure(work_data2, items = c("opp37", "opp39", "opp312"),
-               ci = FALSE, poly = FALSE)
+fit_motivation <- cfa(motivation_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_motivation)
 
-# Engagement
-scaleStructure(work_data2, items = c("uwes1", "uwes2", "uwes3", "uwes4", "uwes5", "uwes6", "uwes7", "uwes8", "uwes9"),
-               ci = FALSE, poly = FALSE)
 
-# Job resources
-scaleStructure(work_data2, items = c("jdr1", "jdr3", "jdr5", "jdr7", "jdr11"),
-               ci = FALSE, poly = FALSE)
+# calculating Cronbach alpha for Opportunity
+opportunity_factor <- '
+opport_factor =~ opp37 + opp39 + opp312'
 
-# Job demands
-scaleStructure(work_data2, items = c("jdr2", "jdr4", "jdr6", "jdr8", "jdr10"),
-               ci = FALSE, poly = FALSE)
+fit_opportunity <- cfa(opportunity_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_opportunity)
 
-# Transfer
-scaleStructure(work_data2, items = c("use1", "use3", "use5", "use7"),
-               ci = FALSE, poly = FALSE)
+
+# calculating Cronbach alpha for Engagement
+engagement_factor <- '
+engage_factor =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
+
+fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_engagement)
+
+
+# calculating Cronbach alpha for Job resources
+resources_factor <- '
+res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11'
+
+fit_resources <- cfa(resources_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_resources)
+
+
+# calculating Cronbach alpha for Job demands
+demands_factor <- '
+dem_factor =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10'
+
+fit_demands <- cfa(demands_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_demands)
+
+
+# calculating Cronbach alpha for Transfer
+transfer_factor <- '
+use_factor =~ use1 + use3 + use5 + use7'
+
+fit_transf <- cfa(transfer_factor, data = work_data2, estimator = 'MLR')
+reliability(fit_transf)
 
 
 ## ---------------------------------------------- preparatory analysis -------------------------------------------
