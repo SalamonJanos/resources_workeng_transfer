@@ -82,11 +82,12 @@ round(reliabilities[1:2,], 2)
 ## ---------------------------------------- preparation for correlation table ------------------------------------
 
 # check variables normality
-shapiro.test(work_data2$motivation)
-shapiro.test(work_data2$opportunity)
-shapiro.test(work_data2$uwes_all)
 shapiro.test(work_data2$job_resources)
 shapiro.test(work_data2$job_demands)
+shapiro.test(work_data2$uwes_all)
+shapiro.test(work_data2$motivation)
+shapiro.test(work_data2$opportunity)
+
 shapiro.test(work_data2$use)
 # significant Shapiro-Wilk normality tests --> Spearman correlations are necessary
 
