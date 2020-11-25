@@ -6,7 +6,7 @@ library(lavaan) # for calculating Cronbach alpha
 library(semTools)  # for calculating Cronbach alpha
 library(semPlot)  # for making SEM path models
 library(flextable) # for making regression table and descriptive table publication ready
-
+library(gtools) # for adding significance stars e.g., to standardized parameter estimates
 
 # import database
 work_data <- read_sav("data/Transfer_factors.sav")
@@ -703,14 +703,115 @@ save_as_docx("Table 2. Goodness-of-fit statistics for the estimated measurement 
 ## -------------------------------------------------- Table 3. Mediation analysis ------------------------------------------------
 ## -------------------------------------------------------------------------------------------------------------------------------
 
+mod1 <- '
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+opport =~ opp37 + opp39 + opp312
+
+ # a path
+ eng ~ a * jres
+
+ # b path
+ opport ~ b * eng
+
+ # c prime path 
+ opport ~ cp * jres
+
+ # indirect and total effects
+ ab := a * b
+ total := cp + ab'
+
+fsem1 <- sem(mod1, data = work_data2, se = "bootstrap", bootstrap = 10000)
+
+# summary(fsem1, standardized = TRUE)
+
+med_estimates_full <- parameterestimates(fsem1, boot.ci.type = "bca.simple", standardized = TRUE) 
+
+# med_estimates <- med_estimates_full[c(18:20, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nr <- med_estimates_full[c(18:20, 41:42),c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt <- med_estimates_full[c(18:20, 41:42),c("lhs", "op", "rhs", "label")]
+
+# add significance stars from p values
+med_estimates_nr$sign <- stars.pval(med_estimates_nr$pvalue)
+med_estimates_sign <- med_estimates_nr[1:5,"sign"]
+
+# change class to numeric
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
+med_estimates_nr[] <- lapply(med_estimates_nr, function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+sapply(med_estimates_nr, class)
+
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
+med_estimates_nr2 <- data.frame(lapply(med_estimates_nr, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
 
 
+# bind columns that contain text, modified numeric values and significance stars 
+med_estimates_2 <- cbind(med_estimates_txt, med_estimates_nr2, med_estimates_sign)
+
+med_estimates_2 <- med_estimates_2 %>% 
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
+  unite("standardized", c(std.all, med_estimates_sign), sep = "", remove = TRUE)
+
+med_estimates_2$`95% CI` <- med_estimates_2$`95% CI` %>% 
+  paste("[", ., "]")
 
 
+variables0 <- "Job Resources -> Opportunity to Transfer"
+variables <- as.data.frame(variables0) 
+
+direct <- med_estimates_2[3, c("standardized", "95% CI")]
+direct <- direct %>% 
+  rename("direct_beta" = standardized,
+         "direct_ci" = `95% CI`)
+    
+indirect <- med_estimates_2[4, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+total <- med_estimates_2[5, c("standardized", "95% CI")]
+total <- total %>% 
+  rename("total_beta" = standardized,
+         "total_ci" = `95% CI`)
+
+Mediator <- c("Work Engagement")
+mediat <- as.data.frame(Mediator)
 
 
+mod_table <- cbind(variables, total, direct, mediat, indirect)
 
 
+# designing final correlation table
+designed_table_med <- mod_table %>% 
+  flextable() %>% 
+  set_header_labels(variables0 = "",
+                    total_beta = "Total effect",
+                    total_ci = "",
+                    direct_beta = " Direct effect", 
+                    direct_ci = "",
+                    Mediator = "Mediator", 
+                    indirect_beta = "Indirect effect",
+                    indirect_ci = "") %>% 
+  add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"), top = FALSE ) %>%
+  merge_at(i = 1, j = 2:3, part = "head") %>% 
+  merge_at(i = 1, j = 4:5, part = "head") %>% 
+  merge_at(i = 1, j = 7:8, part = "head") %>% 
+  hline(i = 2, part = "head",  border = officer::fp_border(width = 2)) %>% 
+  hline(i = 1, part = "head",  border = officer::fp_border("white")) %>% 
+  fontsize(size = 11, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>% 
+  width(width = 0.86) %>% 
+  # autofit() %>% 
+  add_footer_lines(c("Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
+                     "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals", 
+                     "* p < .05, ** p < .01, *** p < .001"))
+
+# saving final table to word file
+save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
+             path = "Mediation analysis table.docx")
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------
@@ -784,7 +885,7 @@ designed_table_est <- estimate_table3 %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 3. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
+save_as_docx("Table S1. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
 
 ## -------------------------------------------------------------------------------------------------------------------------------
 
