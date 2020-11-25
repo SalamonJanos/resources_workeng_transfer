@@ -75,7 +75,7 @@ transfer_rel <- as.data.frame(reliability(fit_transf))
 
 
 reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
-round(reliabilities[1:2,], 2)
+reliabilities2 <- round(reliabilities[1:2,], 2)
 
 ## ---------------------------------------------- preparatory analysis -------------------------------------------
 
@@ -190,6 +190,10 @@ row.names(combined_tables) <- c("1. Job Resources", "2. Job Demands", "3. Work E
 # setting row names to first column
 combined_tables <- tibble::rownames_to_column(combined_tables, " ")
 
+# removing last (empty) column
+combined_tables[,9] <- NULL
+
+# renaming column names
 combined_tables <- combined_tables %>%  
   rename(
     "M" = mean,
@@ -198,8 +202,7 @@ combined_tables <- combined_tables %>%
     "2" = job_demands,
     "3" = uwes_all,
     "4" = opportunity,
-    "5" = motivation,
-    "6" = use)
+    "5" = motivation)
 
 
 
