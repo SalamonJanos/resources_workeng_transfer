@@ -12,7 +12,7 @@ library(flextable) # for making regression table and descriptive table publicati
 work_data <- read_sav("data/Transfer_factors.sav")
 
 
-## -------------------------------------------- preparation for analysis --------------------------------------
+## -------------------------------------------------- Preparation for analysis ---------------------------------------------------
 
 # creating necessary variables for visualization
 work_data2 <- work_data %>% 
@@ -22,9 +22,17 @@ work_data2 <- work_data %>%
   filter(T_length_1 != "NA")
 
 
-## internal consistency reliability (Cronbach's alpha and omega total) calculation
-## --------------------------------------------------------------------------------------------------------
-## internal consistency reliability (Cronbach's alpha and omega total) calculation
+## -------------------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+## ---------------------------------------------------- Preliminary analyses -----------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+
+
+## -------------------------------------------------------------------------------------------------------------------------------
+## ----------------------- Internal consistency reliability (Cronbach's alpha and omega total) calculation -----------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+
 
 # calculating Cronbach alpha for Job resources
 resources_factor <- '
@@ -77,7 +85,12 @@ transfer_rel <- as.data.frame(reliability(fit_transf))
 reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
 reliabilities2 <- round(reliabilities[1:2,], 3)
 
-## ---------------------------------------------- preparatory analysis -------------------------------------------
+
+
+## -------------------------------------------------------------------------------------------------------------------------------
+## ---------------- Table 1. Descriptive statistics and Spearman bivariate correlations between variables ------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+
 
 ## ---------------------------------------- preparation for correlation table ------------------------------------
 
@@ -100,7 +113,7 @@ corr_table <- work_data2 %>%
 # job_demands_inp <- c("jdr2", "jdr4", "jdr6", "jdr8", "jdr10")
 # jdem_descriptives <- as.data.frame(psych::describe(work_data2[,job_demands_inp], skew = TRUE))
 
-## ------------------------------------------ function to create Spearman corr table  ---------------------------------------
+## ------------------------------------------ function to create Spearman corr table  ----------------------------------
 
 ## function necessary for Spearman correlation table with stars indicating significance levels
 
@@ -154,7 +167,7 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
   }
 } 
 
-## ---------------------------------  calculating correlations and creating correlation matrix ---------------------------------
+## ---------------------------------  calculating correlations and creating correlation matrix --------------------------
 
 correlation_table <- corstars(corr_table, method = "spearman")
 
@@ -163,7 +176,7 @@ correlation_table <- correlation_table %>%
   mutate(use = "")
 
 
-## ---------------------------------  calculating descriptives for final correlation table ---------------------------------
+## ---------------------------------  calculating descriptives for final correlation table ------------------------------
 
 all_descriptives <- as.data.frame(psych::describe(work_data2[,corr_input], skew = TRUE))
 descr1 <- all_descriptives[,c("mean", "sd")]
@@ -179,7 +192,7 @@ round_df <- function(x, digits) {
 # rounding numbers
 descr_table1_2 <- round_df(descr_table1, 2)
 
-## --------------------------------------  combining descriptives and correlation tables -------------------------------------
+## --------------------------------------  combining descriptives and correlation tables -------------------------------
 
 combined_tables <- cbind(descr_table1_2, correlation_table)
 
@@ -219,16 +232,16 @@ designed_table <- combined_tables %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlations between variables" = designed_table, path = "JDR, WE, Transfer correlation table.docx")
+save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlations between variables" = designed_table, 
+             path = "JDR, WE, Transfer correlation table.docx")
 
 
 
-
-## -----------------------------------------------------------------------------------------------------------------------
-## -----------------------------------------------------------------------------------------------------------------------
-## ---------------------------------------------------- MAIN ANALYSIS ----------------------------------------------------
-## -----------------------------------------------------------------------------------------------------------------------
-## -----------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+## ---------------------------------------------------------- MAIN ANALYSIS ------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
 
 # Goodness-of-fit statistics for the estimated measurement models
 
@@ -368,7 +381,7 @@ fit_transfer_t1 <- round(fitMeasures(fit_tr)[c("chisq.scaled", "df.scaled", "pva
                                                "srmr", "aic", "bic")], 3)
 
 
-## ------------------------------------------------------------------------------------
+
 
 ## -----------------------------------------------------------------------------------------------------------------------
 
@@ -467,76 +480,6 @@ lavInspect(fit_transfer1b, "rsquare")
 # opport r2 = .139
 
 
-lambda <- inspect(fit_transfer1b,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
-#inspect(fit_transfer1b,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
-estimates <- standardizedSolution(fit_transfer1b) # it shows what we need, both lamda and theta (est.std column)
-
-#estimates2 <- estimates[c(1:29,46:74),c("lhs", "op", "rhs", "est.std")]
-#lambda2 <- estimates[1:29,c("lhs", "op", "rhs", "est.std")]
-unique <- estimates[46:74,c("lhs", "est.std")]
-  
-estimates_t <- cbind(lambda, unique)
-# after checking each rows contain lambda and theta in the appropriate line, we can remove unnecessary column
-estimates_t2 <- subset(estimates_t, select = -c(lhs))
-estimates_t2 <- round(estimates_t2, 3)
-##
-estimates_t3 <- data.frame(lapply(estimates_t2, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
-estimates_t3[estimates_t3 == ".000"] <- ""
-
-item_nr <- c(
-           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
-           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
-           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9",
-           "Item 1", "Item 2", "Item 3",
-           "Item 1", "Item 2", "Item 3",
-           "Item 1", "Item 2", "Item 3", "Item 4")
-
-items <- as.data.frame(item_nr)
-
-itemname <- c("a", "a", "a", "a", "a",
-             "b", "b", "b", "b", "b",
-             "c", "c", "c", "c", "c", "c", "c", "c", "c",
-             "d", "d", "d",
-             "e", "e", "e",
-             "f", "f", "f", "f")
-
-itemnames <- as.data.frame(itemname)
-
-estimate_table <- cbind(itemnames, items, estimates_t3)
-
-estimate_table_new <- as.data.frame(lapply(estimate_table, as.character), stringsAsFactors = FALSE)
-estimate_table2 <- head(do.call(rbind, by(estimate_table_new, estimate_table_new$itemname, rbind, "")), -1 )
-
-estimate_table2 <- rbind("", estimate_table2)
-estimate_table2 <- subset(estimate_table2, select = -c(itemname))
-
-estimate_table3 <- estimate_table2 %>%  
-  rename(
-    " " = item_nr,
-    "WE (A)" = eng,
-    "JR (A)" = jres,
-    "JD (A)" = jdem,
-    "MTT (A)" = motiv,
-    "OTT (A)" = opport,
-    "TT (A)" = transfer,
-    "Theta" = est.std)
-
-
-# designing final correlation table
-designed_table_est <- estimate_table3 %>% 
-  flextable() %>% 
-#  hline(i = 6, part = "body", border = officer::fp_border()) %>% 
-  fontsize(size = 10, part = "all") %>%
-  font(fontname = "Times New Roman", part = "all") %>%
-  align(align = "left", part = "all") %>% 
-  autofit() %>% 
-  add_footer_lines(c("Note. N = 311; λ = Factor loading; δ = Item uniqueness; ω = model-based omega composite reliability.", 
-                     "* p < .05, ** p < .01, *** p < .001"))
-
-# saving final table to word file
-save_as_docx("Table 3. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
-
-
 
 ## ------------------------------------------------------------------------------------
 
@@ -575,12 +518,13 @@ save_as_docx("Table 3. Parameter Estimates" = designed_table_est, path = "Parame
 # # opport r2 = .128
 
 
-############################################################################################################
-######### --------------------------------------------------------------------------------------############
-############################################################################################################
 
-# preparation for creating table for Goodness-of-fit statistics for the estimatted models
 
+## -------------------------------------------------------------------------------------------------------------------------------
+## ----------------- Table 2. Goodness-of-fit statistics for the estimated measurement and predictive models  --------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+
+# preparation for creating table for Goodness-of-fit statistics for the estimated models
 
 # fit_jres_t1
 fit_jres_t1 <- as.data.frame(fit_jres_t1)
@@ -698,11 +642,14 @@ combined_fit_tables <- rbind(fittable01, fittable02, fittable03, fittable04, fit
                              #fittable5
                              )
 
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
 combined_fit_tables[] <- lapply(combined_fit_tables, function(x) {
   if(is.character(x)) as.numeric(as.character(x)) else x
 })
 sapply(combined_fit_tables, class)
 
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
 combined_fit_tables2 <- data.frame(lapply(combined_fit_tables, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
 
 combined_fit_tables2 <- combined_fit_tables2 %>% 
@@ -752,11 +699,99 @@ save_as_docx("Table 2. Goodness-of-fit statistics for the estimated measurement 
 
 
 
-############################################################################################################
-######### --------------------------------------------------------------------------------------############
-############################################################################################################
+## -------------------------------------------------------------------------------------------------------------------------------
+## -------------------------------------------------- Table 3. Mediation analysis ------------------------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
 
 
+
+
+
+
+
+
+
+
+
+## -------------------------------------------------------------------------------------------------------------------------------
+## ------------------- Table S1. Standardized Parameter Estimates from the Predictive model (modified) ---------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
+
+lambda <- inspect(fit_transfer1b,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
+#inspect(fit_transfer1b,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
+estimates <- standardizedSolution(fit_transfer1b) # it shows what we need, both lamda and theta (est.std column)
+
+#estimates2 <- estimates[c(1:29,46:74),c("lhs", "op", "rhs", "est.std")]
+#lambda2 <- estimates[1:29,c("lhs", "op", "rhs", "est.std")]
+unique <- estimates[46:74,c("lhs", "est.std")]
+
+estimates_t <- cbind(lambda, unique)
+# after checking each rows contain lambda and theta in the appropriate line, we can remove unnecessary column
+estimates_t2 <- subset(estimates_t, select = -c(lhs))
+estimates_t2 <- round(estimates_t2, 3)
+##
+estimates_t3 <- data.frame(lapply(estimates_t2, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+estimates_t3[estimates_t3 == ".000"] <- ""
+
+item_nr <- c(
+  "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
+  "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
+  "Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9",
+  "Item 1", "Item 2", "Item 3",
+  "Item 1", "Item 2", "Item 3",
+  "Item 1", "Item 2", "Item 3", "Item 4")
+
+items <- as.data.frame(item_nr)
+
+itemname <- c("a", "a", "a", "a", "a",
+              "b", "b", "b", "b", "b",
+              "c", "c", "c", "c", "c", "c", "c", "c", "c",
+              "d", "d", "d",
+              "e", "e", "e",
+              "f", "f", "f", "f")
+
+itemnames <- as.data.frame(itemname)
+
+estimate_table <- cbind(itemnames, items, estimates_t3)
+
+estimate_table_new <- as.data.frame(lapply(estimate_table, as.character), stringsAsFactors = FALSE)
+estimate_table2 <- head(do.call(rbind, by(estimate_table_new, estimate_table_new$itemname, rbind, "")), -1 )
+
+estimate_table2 <- rbind("", estimate_table2)
+estimate_table2 <- subset(estimate_table2, select = -c(itemname))
+
+estimate_table3 <- estimate_table2 %>%  
+  rename(
+    " " = item_nr,
+    "WE (A)" = eng,
+    "JR (A)" = jres,
+    "JD (A)" = jdem,
+    "MTT (A)" = motiv,
+    "OTT (A)" = opport,
+    "TT (A)" = transfer,
+    "Theta" = est.std)
+
+
+# designing final correlation table
+designed_table_est <- estimate_table3 %>% 
+  flextable() %>% 
+  #  hline(i = 6, part = "body", border = officer::fp_border()) %>% 
+  fontsize(size = 10, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>% 
+  autofit() %>% 
+  add_footer_lines(c("Note. N = 311; λ = Factor loading; δ = Item uniqueness; ω = model-based omega composite reliability.", 
+                     "* p < .05, ** p < .01, *** p < .001"))
+
+# saving final table to word file
+save_as_docx("Table 3. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
+
+## -------------------------------------------------------------------------------------------------------------------------------
+
+
+## -------------------------------------------------------------------------------------------------------------------------------
+## ----------------------------------------- Figure 1 (will be changed probably to DiagrammeR) -----------------------------------
+## -------------------------------------------------------------------------------------------------------------------------------
 
 
 pathdiagram1 <- semPaths(fit_transfer1b, 
@@ -779,14 +814,6 @@ pathdiagram1$graphAttributes$Edges$labels = edgelabels
 # pathdiagram1$graphAttributes$Nodes$labels = names(pathdiagram1$graphAttributes$Nodes$labels)
 
 plot(pathdiagram1)  
-
-
-
-
-
-
-
-
 
 
 
