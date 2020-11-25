@@ -26,36 +26,12 @@ work_data2 <- work_data %>%
 ## --------------------------------------------------------------------------------------------------------
 ## internal consistency reliability (Cronbach's alpha and omega total) calculation
 
-# calculating Cronbach alpha for Motivation
-motivation_factor <- '
-motiv_factor =~ mot26 + mot28 + mot212'
-
-fit_motivation <- cfa(motivation_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_motivation)
-
-
-# calculating Cronbach alpha for Opportunity
-opportunity_factor <- '
-opport_factor =~ opp37 + opp39 + opp312'
-
-fit_opportunity <- cfa(opportunity_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_opportunity)
-
-
-# calculating Cronbach alpha for Engagement
-engagement_factor <- '
-engage_factor =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
-
-fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_engagement)
-
-
 # calculating Cronbach alpha for Job resources
 resources_factor <- '
 res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11'
 
 fit_resources <- cfa(resources_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_resources)
+resources_rel <- as.data.frame(reliability(fit_resources))
 
 
 # calculating Cronbach alpha for Job demands
@@ -63,7 +39,31 @@ demands_factor <- '
 dem_factor =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10'
 
 fit_demands <- cfa(demands_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_demands)
+demands_rel <- as.data.frame(reliability(fit_demands))
+
+
+# calculating Cronbach alpha for Engagement
+engagement_factor <- '
+engage_factor =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
+
+fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLR')
+eng_rel <- as.data.frame(reliability(fit_engagement))
+
+
+# calculating Cronbach alpha for Motivation
+motivation_factor <- '
+motiv_factor =~ mot26 + mot28 + mot212'
+
+fit_motivation <- cfa(motivation_factor, data = work_data2, estimator = 'MLR')
+motiv_rel <- as.data.frame(reliability(fit_motivation))
+
+
+# calculating Cronbach alpha for Opportunity
+opportunity_factor <- '
+opport_factor =~ opp37 + opp39 + opp312'
+
+fit_opportunity <- cfa(opportunity_factor, data = work_data2, estimator = 'MLR')
+opport_rel <- as.data.frame(reliability(fit_opportunity))
 
 
 # calculating Cronbach alpha for Transfer
@@ -71,8 +71,11 @@ transfer_factor <- '
 use_factor =~ use1 + use3 + use5 + use7'
 
 fit_transf <- cfa(transfer_factor, data = work_data2, estimator = 'MLR')
-reliability(fit_transf)
+transfer_rel <- as.data.frame(reliability(fit_transf))
 
+
+reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
+round(reliabilities[1:2,], 2)
 
 ## ---------------------------------------------- preparatory analysis -------------------------------------------
 
