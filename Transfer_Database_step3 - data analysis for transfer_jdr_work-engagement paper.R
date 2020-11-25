@@ -75,7 +75,7 @@ transfer_rel <- as.data.frame(reliability(fit_transf))
 
 
 reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
-reliabilities2 <- round(reliabilities[1:2,], 2)
+reliabilities2 <- round(reliabilities[1:2,], 3)
 
 ## ---------------------------------------------- preparatory analysis -------------------------------------------
 
@@ -226,7 +226,7 @@ save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlation
 
 ## -----------------------------------------------------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------------------------------------------------
-## ---------------------------------------------------- MAIN ANALYSIS -----------------------------------------------
+## ---------------------------------------------------- MAIN ANALYSIS ----------------------------------------------------
 ## -----------------------------------------------------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------------------------------------------------
 
@@ -398,7 +398,7 @@ motiv ~~ opport
 
 
 fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
-summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE)
+summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
 fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
                                   "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                   "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
@@ -425,14 +425,14 @@ modificationindices(fit_transfer1, sort = TRUE)
 # transfer model 1b (with correlated uwes1 ~~ uwes2)
 transfer_model1b <- '
 # regressions
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
 jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-transfer =~ use1 + use3 + use5 + use7
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 
 motiv =~ mot26 + mot28 + mot212
 opport =~ opp37 + opp39 + opp312
+
+transfer =~ use1 + use3 + use5 + use7
 
 transfer ~ eng + jres + jdem + motiv + opport
 motiv ~ eng + jres + jdem
@@ -465,6 +465,77 @@ lavInspect(fit_transfer1b, "rsquare")
 # eng r2 = .299
 # motiv r2 = .103
 # opport r2 = .139
+
+
+lambda <- inspect(fit_transfer1b,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
+#inspect(fit_transfer1b,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
+estimates <- standardizedSolution(fit_transfer1b) # it shows what we need, both lamda and theta (est.std column)
+
+#estimates2 <- estimates[c(1:29,46:74),c("lhs", "op", "rhs", "est.std")]
+#lambda2 <- estimates[1:29,c("lhs", "op", "rhs", "est.std")]
+unique <- estimates[46:74,c("lhs", "est.std")]
+  
+estimates_t <- cbind(lambda, unique)
+# after checking each rows contain lambda and theta in the appropriate line, we can remove unnecessary column
+estimates_t2 <- subset(estimates_t, select = -c(lhs))
+estimates_t2 <- round(estimates_t2, 3)
+##
+estimates_t3 <- data.frame(lapply(estimates_t2, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+estimates_t3[estimates_t3 == ".000"] <- ""
+
+item_nr <- c(
+           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
+           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5",
+           "Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9",
+           "Item 1", "Item 2", "Item 3",
+           "Item 1", "Item 2", "Item 3",
+           "Item 1", "Item 2", "Item 3", "Item 4")
+
+items <- as.data.frame(item_nr)
+
+itemname <- c("a", "a", "a", "a", "a",
+             "b", "b", "b", "b", "b",
+             "c", "c", "c", "c", "c", "c", "c", "c", "c",
+             "d", "d", "d",
+             "e", "e", "e",
+             "f", "f", "f", "f")
+
+itemnames <- as.data.frame(itemname)
+
+estimate_table <- cbind(itemnames, items, estimates_t3)
+
+estimate_table_new <- as.data.frame(lapply(estimate_table, as.character), stringsAsFactors = FALSE)
+estimate_table2 <- head(do.call(rbind, by(estimate_table_new, estimate_table_new$itemname, rbind, "")), -1 )
+
+estimate_table2 <- rbind("", estimate_table2)
+estimate_table2 <- subset(estimate_table2, select = -c(itemname))
+
+estimate_table3 <- estimate_table2 %>%  
+  rename(
+    " " = item_nr,
+    "WE (A)" = eng,
+    "JR (A)" = jres,
+    "JD (A)" = jdem,
+    "MTT (A)" = motiv,
+    "OTT (A)" = opport,
+    "TT (A)" = transfer,
+    "Theta" = est.std)
+
+
+# designing final correlation table
+designed_table_est <- estimate_table3 %>% 
+  flextable() %>% 
+#  hline(i = 6, part = "body", border = officer::fp_border()) %>% 
+  fontsize(size = 10, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>% 
+  autofit() %>% 
+  add_footer_lines(c("Note. N = 311; λ = Factor loading; δ = Item uniqueness; ω = model-based omega composite reliability.", 
+                     "* p < .05, ** p < .01, *** p < .001"))
+
+# saving final table to word file
+save_as_docx("Table 3. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
+
 
 
 ## ------------------------------------------------------------------------------------
