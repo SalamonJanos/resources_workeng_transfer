@@ -87,17 +87,16 @@ shapiro.test(work_data2$job_demands)
 shapiro.test(work_data2$uwes_all)
 shapiro.test(work_data2$motivation)
 shapiro.test(work_data2$opportunity)
-
 shapiro.test(work_data2$use)
+
 # significant Shapiro-Wilk normality tests --> Spearman correlations are necessary
 
 corr_input <- c("job_resources", "job_demands", "uwes_all", "opportunity", "motivation", "use")
 
-work_data3 <- work_data2
-
-corr_table <- work_data3 %>% 
+corr_table <- work_data2 %>% 
   select(., one_of(corr_input))
 
+# # checking descriptives of items
 # job_demands_inp <- c("jdr2", "jdr4", "jdr6", "jdr8", "jdr10")
 # jdem_descriptives <- as.data.frame(psych::describe(work_data2[,job_demands_inp], skew = TRUE))
 
@@ -166,7 +165,7 @@ correlation_table <- correlation_table %>%
 
 ## ---------------------------------  calculating descriptives for final correlation table ---------------------------------
 
-all_descriptives <- as.data.frame(psych::describe(work_data3[,corr_input], skew = TRUE))
+all_descriptives <- as.data.frame(psych::describe(work_data2[,corr_input], skew = TRUE))
 descr1 <- all_descriptives[,c("mean", "sd")]
 descr_table1 <- descr1
 
