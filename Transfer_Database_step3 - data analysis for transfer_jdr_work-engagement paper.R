@@ -181,7 +181,6 @@ descr_table1_2 <- round_df(descr_table1, 2)
 
 ## --------------------------------------  combining descriptives and correlation tables -------------------------------------
 
-#combined_tables <- rbind(correlation_table, descr_table1_2)
 combined_tables <- cbind(descr_table1_2, correlation_table)
 
 row.names(combined_tables) <- c("1. Job Resources", "2. Job Demands", "3. Work Engagement", 
@@ -193,6 +192,8 @@ combined_tables <- tibble::rownames_to_column(combined_tables, " ")
 
 combined_tables <- combined_tables %>%  
   rename(
+    "M" = mean,
+    "SD" = sd,
     "1" = job_resources,
     "2" = job_demands,
     "3" = uwes_all,
