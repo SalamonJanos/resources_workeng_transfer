@@ -754,7 +754,7 @@ med_estimates_jr_m_t2$`95% CI` <- med_estimates_jr_m_t2$`95% CI` %>%
   paste("[", ., "]")
 
 
-variables0 <- "Job Resources -> Training Transfer"
+variables0 <- "Job Resources -> Transfer (2)"
 variables <- as.data.frame(variables0) 
 
 direct <- med_estimates_jr_m_t2[3, c("standardized", "95% CI")]
@@ -772,7 +772,7 @@ total <- total %>%
   rename("total_beta" = standardized,
          "total_ci" = `95% CI`)
 
-Mediator <- c("Motivation to Transfer")
+Mediator <- c("MTT")
 mediat <- as.data.frame(Mediator)
 
 
@@ -840,7 +840,7 @@ med_estimates_2$`95% CI` <- med_estimates_2$`95% CI` %>%
   paste("[", ., "]")
 
 
-variables0 <- "Job Resources -> Opportunity to Transfer"
+variables0 <- "Job Resources -> OTT"
 variables <- as.data.frame(variables0) 
 
 direct <- med_estimates_2[3, c("standardized", "95% CI")]
@@ -858,7 +858,7 @@ total <- total %>%
   rename("total_beta" = standardized,
          "total_ci" = `95% CI`)
 
-Mediator <- c("Work Engagement")
+Mediator <- c("WE")
 mediat <- as.data.frame(Mediator)
 
 
@@ -1049,7 +1049,7 @@ med_estimates_2b$`95% CI` <- med_estimates_2b$`95% CI` %>%
 
 
 # mediator: work engagement
-variables0 <- "Job Resources -> Transfer (2)"
+variables0 <- "Job Resources -> Transfer (1)"
 variables <- as.data.frame(variables0) 
 
 direct <- med_estimates_2b[6, c("standardized", "95% CI")]
@@ -1067,7 +1067,7 @@ total <- total %>%
   rename("total_beta" = standardized,
          "total_ci" = `95% CI`)
 
-Mediator <- c("Work Engagement")
+Mediator <- c("WE")
 mediat <- as.data.frame(Mediator)
 
 mod_tableb1 <- cbind(variables, total, direct, mediat, indirect)
@@ -1103,7 +1103,7 @@ total_b <- as.data.frame(total_beta)
 total_ci <- "" 
 total_confi <- as.data.frame(total_ci) 
 
-Mediator <- c("Opportunity to Transfer")
+Mediator <- c("OTT")
 mediat <- as.data.frame(Mediator)
 
 
@@ -1139,7 +1139,7 @@ mod_tableb3 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, me
 
 
 
-mod_tables <- rbind(mod_table_jr_m_t, mod_table, mod_tableb1, mod_tableb2, mod_tableb3)
+mod_tables <- rbind(mod_table, mod_tableb1, mod_tableb2, mod_tableb3, mod_table_jr_m_t)
 
 # designing final correlation table
 designed_table_med <- mod_tables %>%
@@ -1162,7 +1162,7 @@ designed_table_med <- mod_tables %>%
   hline(i = 2, part = "head", border = officer::fp_border(width = 2)) %>%
   hline(i = 1, part = "head", border = officer::fp_border("white")) %>%
   hline(i = 1, part = "body", border = officer::fp_border()) %>%
-  hline(i = 2, part = "body", border = officer::fp_border()) %>%
+  hline(i = 4, part = "body", border = officer::fp_border()) %>%
   fontsize(size = 11, part = "all") %>%
   font(fontname = "Times New Roman", part = "all") %>%
   align(align = "left", part = "all") %>%
@@ -1171,8 +1171,8 @@ designed_table_med <- mod_tables %>%
   add_footer_lines(
     c(
       "Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
-      "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals",
-      "* p < .05, ** p < .01, *** p < .001"
+      "WE = Work Engagement, MTT = Motivation to Transfer, OTT = Opportunity to Transfer. β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals",
+      "* p < .05, ** p < .01"
     )
   )
 
