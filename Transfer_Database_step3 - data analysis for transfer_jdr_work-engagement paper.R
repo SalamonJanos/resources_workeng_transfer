@@ -671,7 +671,7 @@ combined_fit_tables3 <- combined_fit_tables3 %>%
 
 
 
-# designing final correlation table
+# designing final goodness-of-fit statistics table
 designed_table <- combined_fit_tables3 %>% 
   flextable() %>% 
   hline(i = 6, part = "body", border = officer::fp_border()) %>% 
@@ -1141,7 +1141,7 @@ mod_tableb3 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, me
 
 mod_tables <- rbind(mod_table, mod_tableb1, mod_tableb2, mod_tableb3, mod_table_jr_m_t)
 
-# designing final correlation table
+# designing final mediation table
 designed_table_med <- mod_tables %>%
   flextable() %>%
   set_header_labels(
@@ -1242,7 +1242,7 @@ estimate_table3 <- estimate_table2 %>%
     "Theta" = est.std)
 
 
-# designing final correlation table
+# designing final standardized parameter estimates table
 designed_table_est <- estimate_table3 %>% 
   flextable() %>% 
   #  hline(i = 6, part = "body", border = officer::fp_border()) %>% 
