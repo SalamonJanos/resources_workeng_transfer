@@ -22,16 +22,10 @@ work_data2 <- work_data %>%
   filter(T_length_1 != "NA")
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 ## ---------------------------------------------------- Preliminary analyses -----------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
 ## ----------------------- Internal consistency reliability (Cronbach's alpha and omega total) calculation -----------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 
 
 # calculating Cronbach alpha for Job resources
@@ -87,9 +81,7 @@ reliabilities2 <- round(reliabilities[1:2,], 3)
 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
 ## ---------------- Table 1. Descriptive statistics and Spearman bivariate correlations between variables ------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 
 
 ## ---------------------------------------- preparation for correlation table ------------------------------------
@@ -237,11 +229,7 @@ save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlation
 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 ## ---------------------------------------------------------- MAIN ANALYSIS ------------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
 
 # Goodness-of-fit statistics for the estimated measurement models
 
@@ -279,6 +267,7 @@ fit_jdr_t1 <- round(fitMeasures(fit_jdr2)[c("chisq.scaled", "df.scaled", "pvalue
                                               "cfi.scaled", "tli.scaled", "rmsea.scaled",
                                               "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled",
                                               "srmr", "aic", "bic")], 3)
+
 
 ## ------------------------------------------------------------------------------------
 
@@ -520,9 +509,8 @@ lavInspect(fit_transfer1b, "rsquare")
 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
 ## ----------------- Table 2. Goodness-of-fit statistics for the estimated measurement and predictive models  --------------------
-## -------------------------------------------------------------------------------------------------------------------------------
+
 
 # preparation for creating table for Goodness-of-fit statistics for the estimated models
 
@@ -699,9 +687,102 @@ save_as_docx("Table 2. Goodness-of-fit statistics for the estimated measurement 
 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
+
 ## -------------------------------------------------- Table 3. Mediation analysis ------------------------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
+
+
+# job resources -> motivation to transfer -> transfer ---------------------
+
+# used abbrev: jr = job resources, m = motivation to transfer, t = training transfer
+mod_jr_m_t <- '
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+# eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+# opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+transfer =~ use1 + use3 + use5 + use7
+
+
+ # a path
+ motiv ~ a * jres
+
+ # b path
+ transfer ~ b * motiv
+
+ # c prime path 
+ transfer ~ cp * jres
+
+ # indirect and total effects
+ ab := a * b
+ total := cp + ab'
+
+fsem_jr_m_t <- sem(mod_jr_m_t, data = work_data2, se = "bootstrap", bootstrap = 10000)
+
+# summary(fsem_jr_m_t, standardized = TRUE)
+
+med_estimates_full_jr_m_t <- parameterestimates(fsem_jr_m_t, boot.ci.type = "bca.simple", standardized = TRUE) 
+
+# med_estimates_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nr_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("lhs", "op", "rhs", "label")]
+
+
+# add significance stars from p values
+med_estimates_nr_jr_m_t$sign <- stars.pval(med_estimates_nr_jr_m_t$pvalue)
+med_estimates_sign_nr_jr_m_t <- med_estimates_nr_jr_m_t[1:5,"sign"]
+med_estimates_nr_jr_m_t <- med_estimates_nr_jr_m_t[1:5,1:4]
+
+# change class to numeric
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
+med_estimates_nr_jr_m_t[] <- lapply(med_estimates_nr_jr_m_t, function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+sapply(med_estimates_nr_jr_m_t, class)
+
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
+med_estimates_nr_jr_m_t2 <- data.frame(lapply(med_estimates_nr_jr_m_t, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+
+
+# bind columns that contain text, modified numeric values and significance stars 
+med_estimates_jr_m_t2 <- cbind(med_estimates_txt_jr_m_t, med_estimates_nr_jr_m_t2, med_estimates_sign_nr_jr_m_t)
+
+med_estimates_jr_m_t2 <- med_estimates_jr_m_t2 %>% 
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
+  unite("standardized", c(std.all, med_estimates_sign_nr_jr_m_t), sep = "", remove = TRUE)
+
+med_estimates_jr_m_t2$`95% CI` <- med_estimates_jr_m_t2$`95% CI` %>% 
+  paste("[", ., "]")
+
+
+variables0 <- "Job Resources -> Training Transfer"
+variables <- as.data.frame(variables0) 
+
+direct <- med_estimates_jr_m_t2[3, c("standardized", "95% CI")]
+direct <- direct %>% 
+  rename("direct_beta" = standardized,
+         "direct_ci" = `95% CI`)
+
+indirect <- med_estimates_jr_m_t2[4, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+total <- med_estimates_jr_m_t2[5, c("standardized", "95% CI")]
+total <- total %>% 
+  rename("total_beta" = standardized,
+         "total_ci" = `95% CI`)
+
+Mediator <- c("Motivation to Transfer")
+mediat <- as.data.frame(Mediator)
+
+
+mod_table_jr_m_t <- cbind(variables, total, direct, mediat, indirect)
+
+
+
+
+
+# job resources -> work engagement -> opportunity to transfer -------------
 
 mod1 <- '
 jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
@@ -734,6 +815,7 @@ med_estimates_txt <- med_estimates_full[c(18:20, 41:42),c("lhs", "op", "rhs", "l
 # add significance stars from p values
 med_estimates_nr$sign <- stars.pval(med_estimates_nr$pvalue)
 med_estimates_sign <- med_estimates_nr[1:5,"sign"]
+med_estimates_nr <- med_estimates_nr[1:5,1:4]
 
 # change class to numeric
 # solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
@@ -782,41 +864,225 @@ mediat <- as.data.frame(Mediator)
 
 mod_table <- cbind(variables, total, direct, mediat, indirect)
 
+# mod_tables <- rbind(mod_table_jr_m_t, mod_table)
+# 
+# # designing final correlation table
+# designed_table_med <- mod_tables %>%
+#   flextable() %>%
+#   set_header_labels(
+#     variables0 = "",
+#     total_beta = "Total effect",
+#     total_ci = "",
+#     direct_beta = " Direct effect",
+#     direct_ci = "",
+#     Mediator = "Mediator",
+#     indirect_beta = "Indirect effect",
+#     indirect_ci = ""
+#   ) %>%
+#   add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"),
+#                  top = FALSE) %>%
+#   merge_at(i = 1, j = 2:3, part = "head") %>%
+#   merge_at(i = 1, j = 4:5, part = "head") %>%
+#   merge_at(i = 1, j = 7:8, part = "head") %>%
+#   hline(i = 2,
+#         part = "head",
+#         border = officer::fp_border(width = 2)) %>%
+#   hline(i = 1,
+#         part = "head",
+#         border = officer::fp_border("white")) %>%
+#   fontsize(size = 11, part = "all") %>%
+#   font(fontname = "Times New Roman", part = "all") %>%
+#   align(align = "left", part = "all") %>%
+#   # width(width = 0.86) %>%
+#   autofit() %>%
+#   add_footer_lines(
+#     c(
+#       "Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
+#       "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals",
+#       "* p < .05, ** p < .01, *** p < .001"
+#     )
+#   )
+# 
+# # saving final table to word file
+# save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
+#              path = "Mediation analysis table.docx")
+
+
+
+# job resources -> work engagement -> opportunity -> transfer -------------
+
+mod1b <- '
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+opport =~ opp37 + opp39 + opp312
+transfer =~ use1 + use3 + use5 + use7
+
+ # a1 path
+ eng ~ a1 * jres
+
+ # b1 path
+ transfer ~ b1 * eng
+ 
+ # a2 path
+ opport ~ a2 * jres
+
+ # b2 path
+ transfer ~ b2 * opport
+ 
+  # c prime path 
+ transfer ~ cp * jres
+
+ # indirect and total effects
+ a1b1 := a1 * b1
+ a2b2 := a2 * b2
+ total := cp + a1b1 + a2b2'
+
+fsem1b <- sem(mod1b, data = work_data2, se = "bootstrap", bootstrap = 10000)
+
+# summary(fsem1b, standardized = TRUE)
+
+med_estimates_fullb <- parameterestimates(fsem1b, boot.ci.type = "bca.simple", standardized = TRUE) 
+
+#med_estimatesb <- med_estimates_fullb[c(22:26, 52:54),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nrb <- med_estimates_fullb[c(22:26, 52:54),c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txtb <- med_estimates_fullb[c(22:26, 52:54),c("lhs", "op", "rhs", "label")]
+
+# add significance stars from p values
+med_estimates_nrb$sign <- stars.pval(med_estimates_nrb$pvalue)
+med_estimates_signb <- med_estimates_nrb[1:8,"sign"]
+med_estimates_nrb <- med_estimates_nrb[1:8,1:4]
+
+# change class to numeric
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
+med_estimates_nrb[] <- lapply(med_estimates_nrb, function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+sapply(med_estimates_nrb, class)
+
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
+med_estimates_nr2b <- data.frame(lapply(med_estimates_nrb, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+
+
+# bind columns that contain text, modified numeric values and significance stars 
+med_estimates_2b <- cbind(med_estimates_txtb, med_estimates_nr2b, med_estimates_signb)
+
+med_estimates_2b <- med_estimates_2b %>% 
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
+  unite("standardized", c(std.all, med_estimates_signb), sep = "", remove = TRUE)
+
+med_estimates_2b$`95% CI` <- med_estimates_2b$`95% CI` %>% 
+  paste("[", ., "]")
+
+
+# mediator: work engagement
+variables0 <- "Job Resources -> Transfer (2)"
+variables <- as.data.frame(variables0) 
+
+direct <- med_estimates_2b[5, c("standardized", "95% CI")]
+direct <- direct %>% 
+  rename("direct_beta" = standardized,
+         "direct_ci" = `95% CI`)
+
+indirect <- med_estimates_2b[6, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+total <- med_estimates_2b[8, c("standardized", "95% CI")]
+total <- total %>% 
+  rename("total_beta" = standardized,
+         "total_ci" = `95% CI`)
+
+Mediator <- c("Work Engagement")
+mediat <- as.data.frame(Mediator)
+
+mod_tableb1 <- cbind(variables, total, direct, mediat, indirect)
+
+
+# mediator: opportunity
+
+variables0 <- ""
+variables <- as.data.frame(variables0) 
+
+# direct <- med_estimates_2b[5, c("standardized", "95% CI")]
+# direct <- direct %>% 
+#   rename("direct_beta" = standardized,
+#          "direct_ci" = `95% CI`) 
+
+direct_beta <- ""
+direct_b <- as.data.frame(direct_beta) 
+direct_ci <- "" 
+direct_confi <- as.data.frame(direct_ci) 
+
+indirect <- med_estimates_2b[7, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+# total <- med_estimates_2b[8, c("standardized", "95% CI")]
+# total <- total %>% 
+#   rename("total_beta" = standardized,
+#          "total_ci" = `95% CI`)
+
+total_beta <- ""
+total_b <- as.data.frame(total_beta) 
+total_ci <- "" 
+total_confi <- as.data.frame(total_ci) 
+
+Mediator <- c("Opportunity to Transfer")
+mediat <- as.data.frame(Mediator)
+
+
+mod_tableb2 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, mediat, indirect)
+
+mod_tables <- rbind(mod_table_jr_m_t, mod_table, mod_tableb1, mod_tableb2)
 
 # designing final correlation table
-designed_table_med <- mod_table %>% 
-  flextable() %>% 
-  set_header_labels(variables0 = "",
-                    total_beta = "Total effect",
-                    total_ci = "",
-                    direct_beta = " Direct effect", 
-                    direct_ci = "",
-                    Mediator = "Mediator", 
-                    indirect_beta = "Indirect effect",
-                    indirect_ci = "") %>% 
-  add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"), top = FALSE ) %>%
-  merge_at(i = 1, j = 2:3, part = "head") %>% 
-  merge_at(i = 1, j = 4:5, part = "head") %>% 
-  merge_at(i = 1, j = 7:8, part = "head") %>% 
-  hline(i = 2, part = "head",  border = officer::fp_border(width = 2)) %>% 
-  hline(i = 1, part = "head",  border = officer::fp_border("white")) %>% 
+designed_table_med <- mod_tables %>%
+  flextable() %>%
+  set_header_labels(
+    variables0 = "",
+    total_beta = "Total effect",
+    total_ci = "",
+    direct_beta = " Direct effect",
+    direct_ci = "",
+    Mediator = "Mediator",
+    indirect_beta = "Indirect effect",
+    indirect_ci = ""
+  ) %>%
+  add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"),
+                 top = FALSE) %>%
+  merge_at(i = 1, j = 2:3, part = "head") %>%
+  merge_at(i = 1, j = 4:5, part = "head") %>%
+  merge_at(i = 1, j = 7:8, part = "head") %>%
+  hline(i = 2,
+        part = "head",
+        border = officer::fp_border(width = 2)) %>%
+  hline(i = 1,
+        part = "head",
+        border = officer::fp_border("white")) %>%
   fontsize(size = 11, part = "all") %>%
   font(fontname = "Times New Roman", part = "all") %>%
-  align(align = "left", part = "all") %>% 
-  width(width = 0.86) %>% 
-  # autofit() %>% 
-  add_footer_lines(c("Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
-                     "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals", 
-                     "* p < .05, ** p < .01, *** p < .001"))
+  align(align = "left", part = "all") %>%
+  # width(width = 0.86) %>%
+  autofit() %>%
+  add_footer_lines(
+    c(
+      "Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
+      "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals",
+      "* p < .05, ** p < .01, *** p < .001"
+    )
+  )
 
 # saving final table to word file
 save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
              path = "Mediation analysis table.docx")
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
+
 ## ------------------- Table S1. Standardized Parameter Estimates from the Predictive model (modified) ---------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
+
 
 lambda <- inspect(fit_transfer1b,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
 #inspect(fit_transfer1b,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
@@ -887,12 +1153,9 @@ designed_table_est <- estimate_table3 %>%
 # saving final table to word file
 save_as_docx("Table S1. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
 
-## -------------------------------------------------------------------------------------------------------------------------------
 
 
-## -------------------------------------------------------------------------------------------------------------------------------
-## ----------------------------------------- Figure 1 (will be changed probably to DiagrammeR) -----------------------------------
-## -------------------------------------------------------------------------------------------------------------------------------
+## ------------------------------- Figure 1 (will be changed probably to DiagrammeR / TidySEM) -----------------------------------
 
 
 pathdiagram1 <- semPaths(fit_transfer1b, 
