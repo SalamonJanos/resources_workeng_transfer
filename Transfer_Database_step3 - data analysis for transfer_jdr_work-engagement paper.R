@@ -320,6 +320,31 @@ fit_eng_t1 <- round(fitMeasures(fit_we)[c("chisq.scaled", "df.scaled", "pvalue.s
                                           "srmr", "aic", "bic")], 3)
 
 
+# Fit the Confirmatory Factor Analysis (CFA).
+
+we_model_bif <- '
+we      =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+vig     =~ uwes1 + uwes2 + uwes5
+dedic   =~ uwes3 + uwes4 + uwes7
+absor   =~ uwes6 + uwes8 + uwes9
+we      ~~ 0*vig
+we      ~~ 0*dedic
+we      ~~ 0*absor
+vig     ~~ 0*dedic
+vig     ~~ 0*absor
+dedic   ~~ 0*absor
+#uwes1 ~~ 0*uwes1
+'
+
+fit_we_bif <- cfa(we_model_bif, data = work_data2, estimator = 'MLR', control = list(eval.max = 10000))
+summary(fit_we_bif, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+fit_eng_bif <- round(fitMeasures(fit_we_bif)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                          "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                          "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                          "srmr", "aic", "bic")], 3)
+
+
+
 ## ------------------------------------------------------------------------------------
 
 # motivation to transfer model 
@@ -435,6 +460,201 @@ fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled
                                   "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                   "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                   "srmr", "aic", "bic")], 3)
+
+lavInspect(fit_transfer1, "rsquare")
+# transfer r2 = .684
+# eng r2 = .294
+# motiv r2 = .103
+# opport r2 = .137
+
+beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
+beta_values[30:42,]
+
+
+
+
+# correlation model with bifactor work eng --------------------------------
+
+# transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
+transfer_model1 <- '
+# regressions
+jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
+jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+
+jres ~~ 1*jres
+jdem ~~ 1*jdem
+
+eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+vig     =~ NA*uwes1 + uwes2 + uwes5
+dedic   =~ NA*uwes3 + uwes4 + uwes7
+absor   =~ NA*uwes6 + uwes8 + uwes9
+
+eng ~~ 1*eng
+vig ~~ 1*vig
+dedic ~~ 1*dedic
+absor ~~  1*absor
+
+eng     ~~ 0*vig
+eng     ~~ 0*dedic
+eng     ~~ 0*absor
+vig     ~~ 0*dedic
+vig     ~~ 0*absor
+dedic   ~~ 0*absor
+
+uwes1 ~~ a*uwes1  
+uwes3 ~~ b*uwes3
+
+
+opport =~ NA*opp37 + opp39 + opp312
+motiv =~ NA*mot26 + mot28 + mot212
+transfer =~ NA*use1 + use3 + use5 + use7
+
+opport ~~ 1*opport 
+motiv ~~ 1*motiv
+transfer ~~ 1*transfer
+
+
+# correlations
+jres ~~ jdem
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+eng ~~ transfer
+opport ~~ motiv
+opport ~~ transfer
+motiv ~~ transfer
+
+jres ~~ 0*vig
+jres ~~ 0*dedic
+jres ~~ 0*absor
+jdem ~~ 0*vig
+jdem ~~ 0*dedic
+jdem ~~ 0*absor
+opport ~~ 0*vig
+opport ~~ 0*dedic
+opport ~~ 0*absor
+motiv ~~ 0*vig
+motiv ~~ 0*dedic
+motiv ~~ 0*absor
+transfer ~~ 0*vig
+transfer ~~ 0*dedic
+transfer ~~ 0*absor
+
+# constraints
+a > 0.1
+b > 0.1
+'
+
+
+fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
+summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                      "srmr", "aic", "bic")], 3)
+
+lavInspect(fit_transfer1, "rsquare")
+# transfer r2 = .684
+# eng r2 = .294
+# motiv r2 = .103
+# opport r2 = .137
+
+beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
+beta_values[30:42,]
+
+
+
+# predictive model with bifactor work eng ---------------------------------
+
+# transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
+transfer_model1 <- '
+# regressions
+jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
+jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+
+jres ~~ 1*jres
+jdem ~~ 1*jdem
+
+eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+vig     =~ NA*uwes1 + uwes2 + uwes5
+dedic   =~ NA*uwes3 + uwes4 + uwes7
+absor   =~ NA*uwes6 + uwes8 + uwes9
+
+eng ~~ 1*eng
+vig ~~ 1*vig
+dedic ~~ 1*dedic
+absor ~~  1*absor
+
+eng     ~~ 0*vig
+eng     ~~ 0*dedic
+eng     ~~ 0*absor
+vig     ~~ 0*dedic
+vig     ~~ 0*absor
+dedic   ~~ 0*absor
+
+uwes1 ~~ a*uwes1  
+uwes3 ~~ b*uwes3
+
+
+opport =~ NA*opp37 + opp39 + opp312
+motiv =~ NA*mot26 + mot28 + mot212
+transfer =~ NA*use1 + use3 + use5 + use7
+
+opport ~~ 1*opport 
+motiv ~~ 1*motiv
+transfer ~~ 1*transfer
+
+
+# paths
+transfer ~ opport + motiv + eng + jres + jdem
+
+opport ~ eng + jres + jdem
+
+motiv ~ eng + jres + jdem
+
+eng ~ jres + jdem
+
+
+# correlations
+jres ~~ jdem
+opport ~~ motiv
+
+jres ~~ 0*vig
+jres ~~ 0*dedic
+jres ~~ 0*absor
+jdem ~~ 0*vig
+jdem ~~ 0*dedic
+jdem ~~ 0*absor
+opport ~~ 0*vig
+opport ~~ 0*dedic
+opport ~~ 0*absor
+motiv ~~ 0*vig
+motiv ~~ 0*dedic
+motiv ~~ 0*absor
+transfer ~~ 0*vig
+transfer ~~ 0*dedic
+transfer ~~ 0*absor
+
+
+# constraints
+a > 0.1
+b > 0.1
+'
+
+
+fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
+summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                      "srmr", "aic", "bic")], 3)
 
 lavInspect(fit_transfer1, "rsquare")
 # transfer r2 = .684
