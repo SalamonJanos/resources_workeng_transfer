@@ -442,103 +442,8 @@ lavInspect(fit_transfer1, "rsquare")
 # motiv r2 = .103
 # opport r2 = .137
 
-
-
-# modification indices ----------------------------------------------------
-
-modificationindices(fit_transfer1, sort = TRUE)
-# this suggests to correlate these two items: uwes1 ~~ uwes2
-# which makes sense, based on their wording:
-#   uwes1: At my work, I feel bursting with energy.
-#   uwes2: At my job, I feel strong and vigorous.
-
-
-# Predictive model (modified) ---------------------------------------------
-
-# transfer model 1b (with correlated uwes1 ~~ uwes2)
-transfer_model1b <- '
-# regressions
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-
-motiv =~ mot26 + mot28 + mot212
-opport =~ opp37 + opp39 + opp312
-
-transfer =~ use1 + use3 + use5 + use7
-
-transfer ~ eng + jres + jdem + motiv + opport
-motiv ~ eng + jres + jdem
-opport ~ eng + jres + jdem
-eng ~ jres + jdem
-
-# correlations
-jres ~~ jdem
-motiv ~~ opport
-uwes1 ~~ uwes2
-'
-
-fit_transfer1b <- sem(transfer_model1b, data = work_data2, estimator = 'MLR')
-summary(fit_transfer1b, fit.measures = TRUE, standardized = TRUE)
-fit_transfer_t4 <- round(fitMeasures(fit_transfer1b)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                   "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                   "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                   "srmr", "aic", "bic")], 3)
-
-beta_values <- parameterEstimates(fit_transfer1b, standardized = TRUE)
-beta_values[30:44,]
-
-# anova(fit_transfer1, fit_transfer1b)
-# # Scaled Chi-Squared Difference Test suggests the superiority of fit_transfer1b 
-# # (delta_df = 1, delta_Chisq = 71.141, p < .001)
-
-
-lavInspect(fit_transfer1b, "rsquare")
-# transfer r2 = .685
-# eng r2 = .299
-# motiv r2 = .103
-# opport r2 = .139
-
-
-
-
-# trimmed model -----------------------------------------------------------
-
-
-# ## Predictive model (modified, trimmed)
-# 
-# # transfer model 2 (trimmed model of 1b)
-# transfer_model2 <- '
-# # regressions
-# eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-# jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
-# transfer =~ use1 + use3 + use5 + use7
-# motiv =~ mot26 + mot28 + mot212
-# opport =~ opp37 + opp39 + opp312
-# 
-# transfer ~ motiv + opport
-# motiv ~ eng + jres
-# opport ~ eng + jres
-# eng ~ jres
-# 
-# # correlations
-# motiv ~~ opport
-# uwes1 ~~ uwes2
-# '
-# 
-# fit_transfer2 <- sem(transfer_model2, data = work_data2, estimator = 'MLR')
-# summary(fit_transfer2, fit.measures = TRUE, standardized = TRUE)
-# fit_transfer_t5 <- round(fitMeasures(fit_transfer2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-#                                     "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-#                                     "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-#                                     "srmr", "aic", "bic")], 3)
-# 
-# lavInspect(fit_transfer2, "rsquare")
-# # transfer r2 = .675
-# # eng r2 = .270
-# # motiv r2 = .092
-# # opport r2 = .128
-
+beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
+beta_values[30:42,]
 
 
 
@@ -620,14 +525,14 @@ fit_transfer_t3b <- t(fit_transfer_t3)
 fit_transfer_t3b <- as.data.frame(fit_transfer_t3b)
 
 
-# fit_transfer_t4
-fit_transfer_t4 <- as.data.frame(fit_transfer_t4)
-# setting row names to first column
-fit_transfer_t4 <- tibble::rownames_to_column(fit_transfer_t4, " ")
-names(fit_transfer_t4) <- NULL
-
-fit_transfer_t4b <- t(fit_transfer_t4)
-fit_transfer_t4b <- as.data.frame(fit_transfer_t4b)
+# # fit_transfer_t4
+# fit_transfer_t4 <- as.data.frame(fit_transfer_t4)
+# # setting row names to first column
+# fit_transfer_t4 <- tibble::rownames_to_column(fit_transfer_t4, " ")
+# names(fit_transfer_t4) <- NULL
+# 
+# fit_transfer_t4b <- t(fit_transfer_t4)
+# fit_transfer_t4b <- as.data.frame(fit_transfer_t4b)
 
 
 # # fit_transfer_t5
@@ -654,12 +559,12 @@ fittable05 <- header.true(fit_opport_t1b)
 fittable1 <- header.true(fit_transfer_t1b)
 #fittable2 <- header.true(fit_transfer_t2b)
 fittable3 <- header.true(fit_transfer_t3b)
-fittable4 <- header.true(fit_transfer_t4b)
+# fittable4 <- header.true(fit_transfer_t4b)
 # fittable5 <- header.true(fit_transfer_t5b)
 
 
 combined_fit_tables <- rbind(fittable01, fittable02, fittable03, fittable04, fittable05,
-                             fittable1, fittable3, fittable4#, 
+                             fittable1, fittable3#, fittable4#, 
                              #fittable5
                              )
 
@@ -1220,9 +1125,9 @@ save_as_docx("Table 3. Mediation analysis including total, direct, and indirect 
 ## ------------------- Table S1. Standardized Parameter Estimates from the Predictive model (modified) ---------------------------
 
 
-lambda <- inspect(fit_transfer1b,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
-#inspect(fit_transfer1b,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
-estimates <- standardizedSolution(fit_transfer1b) # it shows what we need, both lamda and theta (est.std column)
+lambda <- inspect(fit_transfer1,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
+#inspect(fit_transfer1,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
+estimates <- standardizedSolution(fit_transfer1) # it shows what we need, both lamda and theta (est.std column)
 
 #estimates2 <- estimates[c(1:29,46:74),c("lhs", "op", "rhs", "est.std")]
 #lambda2 <- estimates[1:29,c("lhs", "op", "rhs", "est.std")]
@@ -1294,13 +1199,13 @@ save_as_docx("Table S1. Parameter Estimates" = designed_table_est, path = "Param
 ## ------------------------------- Figure 1 (will be changed probably to DiagrammeR / TidySEM) -----------------------------------
 
 
-pathdiagram1 <- semPaths(fit_transfer1b, 
+pathdiagram1 <- semPaths(fit_transfer1, 
                          layout = "tree2", centerLevels = TRUE,
                          whatLabels = "std", edge.label.cex = 1,
                          style="lisrel")
 
 
-# pathdiagram1 <- semPaths(fit_transfer1b, 
+# pathdiagram1 <- semPaths(fit_transfer1, 
 #                          rotation = 2,
 #                          layout = "tree3", centerLevels = TRUE,
 #                          whatLabels = "std", edge.label.cex = 1,
