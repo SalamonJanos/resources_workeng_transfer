@@ -372,9 +372,39 @@ fit_transfer_t1 <- round(fitMeasures(fit_tr)[c("chisq.scaled", "df.scaled", "pva
 
 
 
-## -----------------------------------------------------------------------------------------------------------------------
+# JDR and Transfer basic model --------------------------------------------
 
-## Predictive model
+## JDR - Transfer model
+# transfer model 00 - removed item jdr9 from job resources (its loading was 0.173) 
+transfer_model00 <- '
+# regressions
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+transfer =~ use1 + use3 + use5 + use7
+
+transfer ~ jres + jdem
+
+# correlations
+jres ~~ jdem
+'
+
+# SEM results - transfer (MLR)
+fit_transfer00 <- sem(transfer_model00, data = work_data2, estimator = 'MLR')
+summary(fit_transfer00, fit.measures = TRUE, standardized = TRUE)
+fit_transfer_t1 <- round(fitMeasures(fit_transfer00)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                       "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                       "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                       "srmr", "aic", "bic")], 3)
+
+
+lavInspect(fit_transfer00, "rsquare")
+# transfer r2 = 0.073
+# while the model fit is good, they do not explain much of the training transfer variance
+
+
+
+
+# Predictive model --------------------------------------------------------
 
 # transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
 transfer_model1 <- '
@@ -412,7 +442,9 @@ lavInspect(fit_transfer1, "rsquare")
 # motiv r2 = .103
 # opport r2 = .137
 
-## ------------------------------------------------------------------------------------
+
+
+# modification indices ----------------------------------------------------
 
 modificationindices(fit_transfer1, sort = TRUE)
 # this suggests to correlate these two items: uwes1 ~~ uwes2
@@ -420,9 +452,8 @@ modificationindices(fit_transfer1, sort = TRUE)
 #   uwes1: At my work, I feel bursting with energy.
 #   uwes2: At my job, I feel strong and vigorous.
 
-## ------------------------------------------------------------------------------------
 
-## Predictive model (modified)
+# Predictive model (modified) ---------------------------------------------
 
 # transfer model 1b (with correlated uwes1 ~~ uwes2)
 transfer_model1b <- '
@@ -470,7 +501,9 @@ lavInspect(fit_transfer1b, "rsquare")
 
 
 
-## ------------------------------------------------------------------------------------
+
+# trimmed model -----------------------------------------------------------
+
 
 # ## Predictive model (modified, trimmed)
 # 
