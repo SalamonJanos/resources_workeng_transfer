@@ -492,13 +492,18 @@ save_as_docx("Table 1. Bivariate correlations between latent variables" = design
 # JDR and Transfer basic model --------------------------------------------
 
 ## JDR - Transfer model
-# transfer model 00 - removed item jdr9 from job resources (its loading was 0.173) 
-transfer_model00 <- '
+# transfer model 01  
+transfer_model01 <- '
 # regressions
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-transfer =~ use1 + use3 + use5 + use7
+jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
+jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+jres ~~ 1*jres
+jdem ~~ 1*jdem
 
+transfer =~ NA*use1 + use3 + use5 + use7
+transfer ~~ 1*transfer
+
+# path
 transfer ~ jres + jdem
 
 # correlations
@@ -506,67 +511,23 @@ jres ~~ jdem
 '
 
 # SEM results - transfer (MLR)
-fit_transfer00 <- sem(transfer_model00, data = work_data2, estimator = 'MLR')
-summary(fit_transfer00, fit.measures = TRUE, standardized = TRUE)
-fit_transfer_t1 <- round(fitMeasures(fit_transfer00)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+fit_transfer01 <- sem(transfer_model01, data = work_data2, estimator = 'MLR')
+summary(fit_transfer01, fit.measures = TRUE, standardized = TRUE)
+fit_transfer_t1 <- round(fitMeasures(fit_transfer01)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
                                                        "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                                        "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                                        "srmr", "aic", "bic")], 3)
 
 
-lavInspect(fit_transfer00, "rsquare")
+lavInspect(fit_transfer01, "rsquare")
 # transfer r2 = 0.073
 # while the model fit is good, they do not explain much of the training transfer variance
 
 
 
-
-# Predictive model --------------------------------------------------------
-
-# transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
-transfer_model1 <- '
-# regressions
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-transfer =~ use1 + use3 + use5 + use7
-
-motiv =~ mot26 + mot28 + mot212
-opport =~ opp37 + opp39 + opp312
-
-transfer ~ eng + jres + jdem + motiv + opport
-motiv ~ eng + jres + jdem
-opport ~ eng + jres + jdem
-eng ~ jres + jdem
-
-# correlations
-jres ~~ jdem
-motiv ~~ opport
-'
-
-
-fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
-summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                  "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                  "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                  "srmr", "aic", "bic")], 3)
-
-lavInspect(fit_transfer1, "rsquare")
-# transfer r2 = .684
-# eng r2 = .294
-# motiv r2 = .103
-# opport r2 = .137
-
-beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
-beta_values[30:42,]
-
-
-
 # predictive model with bifactor work eng ---------------------------------
 
-# transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
+# transfer model 1 
 transfer_model1 <- '
 # regressions
 jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
@@ -644,19 +605,19 @@ b > 0.1
 
 fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
 summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+fit_transfer_t2 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
                                                       "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                                       "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                                       "srmr", "aic", "bic")], 3)
 
 lavInspect(fit_transfer1, "rsquare")
-# transfer r2 = .684
-# eng r2 = .294
-# motiv r2 = .103
-# opport r2 = .137
+# transfer r2 = .685
+# eng r2 = .304
+# motiv r2 = .102
+# opport r2 = .138
 
 beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
-beta_values[30:42,]
+beta_values[57:69,]
 
 
 
@@ -664,58 +625,6 @@ beta_values[30:42,]
 
 
 # preparation for creating table for Goodness-of-fit statistics for the estimated models
-
-# fit_jres_t1
-fit_jres_t1 <- as.data.frame(fit_jres_t1)
-# setting row names to first column
-fit_jres_t1 <- tibble::rownames_to_column(fit_jres_t1, " ")
-names(fit_jres_t1) <- NULL
-
-fit_jres_t1b <- t(fit_jres_t1)
-fit_jres_t1b <- as.data.frame(fit_jres_t1b)
-
-
-# fit_jdem_t1
-fit_jdem_t1 <- as.data.frame(fit_jdem_t1)
-# setting row names to first column
-fit_jdem_t1 <- tibble::rownames_to_column(fit_jdem_t1, " ")
-names(fit_jdem_t1) <- NULL
-
-fit_jdem_t1b <- t(fit_jdem_t1)
-fit_jdem_t1b <- as.data.frame(fit_jdem_t1b)
-
-
-# fit_eng_t1
-fit_eng_t1 <- as.data.frame(fit_eng_t1)
-# setting row names to first column
-fit_eng_t1 <- tibble::rownames_to_column(fit_eng_t1, " ")
-names(fit_eng_t1) <- NULL
-
-fit_eng_t1b <- t(fit_eng_t1)
-fit_eng_t1b <- as.data.frame(fit_eng_t1b)
-
-
-# fit_motiv_t1
-fit_motiv_t1 <- as.data.frame(fit_motiv_t1)
-# setting row names to first column
-fit_motiv_t1 <- tibble::rownames_to_column(fit_motiv_t1, " ")
-names(fit_motiv_t1) <- NULL
-
-fit_motiv_t1b <- t(fit_motiv_t1)
-fit_motiv_t1b <- as.data.frame(fit_motiv_t1b)
-
-
-# fit_opport_t1
-fit_opport_t1 <- as.data.frame(fit_opport_t1)
-# setting row names to first column
-fit_opport_t1 <- tibble::rownames_to_column(fit_opport_t1, " ")
-names(fit_opport_t1) <- NULL
-
-fit_opport_t1b <- t(fit_opport_t1)
-fit_opport_t1b <- as.data.frame(fit_opport_t1b)
-
-
-
 
 # fit_transfer_t1
 fit_transfer_t1 <- as.data.frame(fit_transfer_t1)
@@ -728,34 +637,15 @@ fit_transfer_t1b <- as.data.frame(fit_transfer_t1b)
 
 
 
-# fit_transfer_t3
-fit_transfer_t3 <- as.data.frame(fit_transfer_t3)
+# fit_transfer_t2
+fit_transfer_t2 <- as.data.frame(fit_transfer_t2)
 # setting row names to first column
-fit_transfer_t3 <- tibble::rownames_to_column(fit_transfer_t3, " ")
-names(fit_transfer_t3) <- NULL
+fit_transfer_t2 <- tibble::rownames_to_column(fit_transfer_t2, " ")
+names(fit_transfer_t2) <- NULL
 
-fit_transfer_t3b <- t(fit_transfer_t3)
-fit_transfer_t3b <- as.data.frame(fit_transfer_t3b)
+fit_transfer_t2b <- t(fit_transfer_t2)
+fit_transfer_t2b <- as.data.frame(fit_transfer_t2b)
 
-
-# # fit_transfer_t4
-# fit_transfer_t4 <- as.data.frame(fit_transfer_t4)
-# # setting row names to first column
-# fit_transfer_t4 <- tibble::rownames_to_column(fit_transfer_t4, " ")
-# names(fit_transfer_t4) <- NULL
-# 
-# fit_transfer_t4b <- t(fit_transfer_t4)
-# fit_transfer_t4b <- as.data.frame(fit_transfer_t4b)
-
-
-# # fit_transfer_t5
-# fit_transfer_t5 <- as.data.frame(fit_transfer_t5)
-# # setting row names to first column
-# fit_transfer_t5 <- tibble::rownames_to_column(fit_transfer_t5, " ")
-# names(fit_transfer_t5) <- NULL
-# 
-# fit_transfer_t5b <- t(fit_transfer_t5)
-# fit_transfer_t5b <- as.data.frame(fit_transfer_t5b)
 
 
 header.true <- function(df) {
@@ -763,23 +653,12 @@ header.true <- function(df) {
   df[-1,]
 }
 
-fittable01 <- header.true(fit_jres_t1b)
-fittable02 <- header.true(fit_jdem_t1b)
-fittable03 <- header.true(fit_eng_t1b)
-fittable04 <- header.true(fit_motiv_t1b)
-fittable05 <- header.true(fit_opport_t1b)
-
 fittable1 <- header.true(fit_transfer_t1b)
-#fittable2 <- header.true(fit_transfer_t2b)
-fittable3 <- header.true(fit_transfer_t3b)
-# fittable4 <- header.true(fit_transfer_t4b)
-# fittable5 <- header.true(fit_transfer_t5b)
+fittable2 <- header.true(fit_transfer_t2b)
 
 
-combined_fit_tables <- rbind(fittable01, fittable02, fittable03, fittable04, fittable05,
-                             fittable1, fittable3#, fittable4#, 
-                             #fittable5
-                             )
+
+combined_fit_tables <- rbind(fittable1, fittable2)
 
 # solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
 combined_fit_tables[] <- lapply(combined_fit_tables, function(x) {
@@ -794,12 +673,8 @@ combined_fit_tables2 <- data.frame(lapply(combined_fit_tables, function(x) gsub(
 combined_fit_tables2 <- combined_fit_tables2 %>% 
   unite(RMSEA_CI, c(rmsea.ci.lower.scaled, rmsea.ci.upper.scaled), sep = " - ", remove = TRUE)
 
-#Model <- c("JDR - Transfer", "JDR, WE - Transfer", "Predictive model", "Predictive model (modified)", "Predictive model (modified, trimmed)")
-Model <- c("Job Resources", "Job Demands", "Work Engagement", 
-           "Motivation to Transfer", "Opportunity to Transfer", "Training Transfer",  
-           "Predictive model", "Predictive model (modified)"
-           #, "Predictive model (modified, trimmed)"
-           )
+Model <- c("JDR - Transfer model", 
+           "Proposed model")
 models <- as.data.frame(Model)
 
 combined_fit_tables3 <- cbind(models, combined_fit_tables2)
@@ -825,7 +700,6 @@ combined_fit_tables3 <- combined_fit_tables3 %>%
 # designing final goodness-of-fit statistics table
 designed_table <- combined_fit_tables3 %>% 
   flextable() %>% 
-  hline(i = 6, part = "body", border = officer::fp_border()) %>% 
   fontsize(size = 10, part = "all") %>%
   font(fontname = "Times New Roman", part = "all") %>%
   align(align = "left", part = "all") %>% 
@@ -834,7 +708,7 @@ designed_table <- combined_fit_tables3 %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 2. Goodness-of-fit statistics for the estimated measurement and predictive models" = designed_table, path = "Goodness-of-fit statistics - measurement and predictive models table.docx")
+save_as_docx("Table 2. Goodness-of-fit statistics for the predictive models" = designed_table, path = "Goodness-of-fit statistics - predictive models table.docx")
 
 
 
