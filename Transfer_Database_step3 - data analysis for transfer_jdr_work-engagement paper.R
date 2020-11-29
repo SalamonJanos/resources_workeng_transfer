@@ -22,11 +22,10 @@ work_data2 <- work_data %>%
   filter(T_length_1 != "NA")
 
 
-## ---------------------------------------------------- Preliminary analyses -----------------------------------------------------
+## ---------------------------------------------------- 1. Preliminary analyses -----------------------------------------------------
 
 
-## ----------------------- Internal consistency reliability (Cronbach's alpha and omega total) calculation -----------------------
-
+## -------------------------- 1.1. Internal consistency (alpha and omega) calculation ---------------------------
 
 # calculating Cronbach alpha for Job resources
 resources_factor <- '
@@ -46,7 +45,29 @@ demands_rel <- as.data.frame(reliability(fit_demands))
 
 # calculating Cronbach alpha for Engagement
 engagement_factor <- '
-engage_factor =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
+eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+vig     =~ NA*uwes1 + uwes2 + uwes5
+dedic   =~ NA*uwes3 + uwes4 + uwes7
+absor   =~ NA*uwes6 + uwes8 + uwes9
+
+eng ~~ 1*eng
+vig ~~ 1*vig
+dedic ~~ 1*dedic
+absor ~~  1*absor
+
+eng     ~~ 0*vig
+eng     ~~ 0*dedic
+eng     ~~ 0*absor
+vig     ~~ 0*dedic
+vig     ~~ 0*absor
+dedic   ~~ 0*absor
+
+uwes1 ~~ a*uwes1  
+uwes3 ~~ b*uwes3
+
+# constraints
+a > 0.1
+b > 0.1'
 
 fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLR')
 eng_rel <- as.data.frame(reliability(fit_engagement))
@@ -80,11 +101,10 @@ reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_re
 reliabilities2 <- round(reliabilities[1:2,], 3)
 
 
+## ---------------------------------------- 1.2. CORRELATION of MEASURED variables ------------------------------------
 
-## ---------------- Table 1. Descriptive statistics and Spearman bivariate correlations between variables ------------------------
 
-
-## ---------------------------------------- preparation for correlation table ------------------------------------
+# 1.2.1. preparation for correlation table --------------------------------
 
 # check variables normality
 shapiro.test(work_data2$job_resources)
@@ -105,7 +125,9 @@ corr_table <- work_data2 %>%
 # job_demands_inp <- c("jdr2", "jdr4", "jdr6", "jdr8", "jdr10")
 # jdem_descriptives <- as.data.frame(psych::describe(work_data2[,job_demands_inp], skew = TRUE))
 
-## ------------------------------------------ function to create Spearman corr table  ----------------------------------
+
+
+# 1.2.2. function to create Spearman corr table ---------------------------
 
 ## function necessary for Spearman correlation table with stars indicating significance levels
 
@@ -130,7 +152,7 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
   ## trunctuate the correlation matrix to two decimal
   R <- format(round(cbind(rep(-1.11, ncol(x)), R), 2))[,-1]
   
-  ## build a new matrix that includes the correlations with their apropriate stars
+  ## build a new matrix that includes the correlations with their appropriate stars
   Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
   diag(Rnew) <- paste(diag(R), " ", sep="")
   rownames(Rnew) <- colnames(x)
@@ -159,7 +181,9 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
   }
 } 
 
-## ---------------------------------  calculating correlations and creating correlation matrix --------------------------
+
+
+# 1.2.3. calculating correlations and creating correlation matrix ---------
 
 correlation_table <- corstars(corr_table, method = "spearman")
 
@@ -168,7 +192,9 @@ correlation_table <- correlation_table %>%
   mutate(use = "")
 
 
-## ---------------------------------  calculating descriptives for final correlation table ------------------------------
+
+
+# 1.2.4. calculating descriptives for final correlation table -------------
 
 all_descriptives <- as.data.frame(psych::describe(work_data2[,corr_input], skew = TRUE))
 descr1 <- all_descriptives[,c("mean", "sd")]
@@ -184,7 +210,11 @@ round_df <- function(x, digits) {
 # rounding numbers
 descr_table1_2 <- round_df(descr_table1, 2)
 
-## --------------------------------------  combining descriptives and correlation tables -------------------------------
+
+
+# 1.2.5. combining descriptives and correlation tables --------------------
+
+
 
 combined_tables <- cbind(descr_table1_2, correlation_table)
 
@@ -210,6 +240,7 @@ combined_tables <- combined_tables %>%
     "5" = motivation)
 
 
+# (Table) Descr stat and Spearman bivariate corr btw MEASURED vars --------
 
 # designing final correlation table
 designed_table <- combined_tables %>% 
@@ -229,173 +260,234 @@ save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlation
 
 
 
-## ---------------------------------------------------------- MAIN ANALYSIS ------------------------------------------------------
-
-# Goodness-of-fit statistics for the estimated measurement models
-
-# # job reosurces model 1 
-# jres_model <- '
-# # regressions
-# jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11
-# '
-# 
-# # CFA results - transfer (MLR)
-# fit_jres <- cfa(jres_model, data = work_data2, estimator = 'MLR')
-# summary(fit_jres, fit.measures = TRUE, standardized = TRUE)
-# fit_jres_t1 <- round(fitMeasures(fit_jres)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-#                                              "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-#                                              "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-#                                              "srmr", "aic", "bic")], 3)
-# # # Fit indices highlighted that the hypothesized representation of the constructs 
-# # # is acceptable (CFI = .977, TLI = .962, RMSEA = .056 [90% CI = 0.011 - 0.095]).
-
-## --------------------------
+## ---------------------------------------- 1.3. CORRELATION of LATENT factors ------------------------------------
 
 
-# job reosurces and demands model 2 (without item jdr9)
-jdr_model2 <- '
+# 1.3.1. correlation model with bifactor work eng --------------------------------
+
+# transfer model 1 
+transfer_corr_model <- '
 # regressions
-jres2 =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-jres2 ~~ jdem
-'
+jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
+jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
 
-# CFA results - transfer (MLR)
-fit_jdr2 <- cfa(jdr_model2, data = work_data2, estimator = 'MLR')
-summary(fit_jdr2, fit.measures = TRUE, standardized = TRUE)
-fit_jdr_t1 <- round(fitMeasures(fit_jdr2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                              "cfi.scaled", "tli.scaled", "rmsea.scaled",
-                                              "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled",
-                                              "srmr", "aic", "bic")], 3)
+jres ~~ 1*jres
+jdem ~~ 1*jdem
 
+eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+vig     =~ NA*uwes1 + uwes2 + uwes5
+dedic   =~ NA*uwes3 + uwes4 + uwes7
+absor   =~ NA*uwes6 + uwes8 + uwes9
 
-## ------------------------------------------------------------------------------------
+eng ~~ 1*eng
+vig ~~ 1*vig
+dedic ~~ 1*dedic
+absor ~~  1*absor
 
-
-# job reosurces model 2 (without item jdr9) 
-jres_model2 <- '
-# regressions
-jres2 =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-'
-
-# CFA results - transfer (MLR)
-fit_jres2 <- cfa(jres_model2, data = work_data2, estimator = 'MLR')
-summary(fit_jres2, fit.measures = TRUE, standardized = TRUE)
-fit_jres_t1 <- round(fitMeasures(fit_jres2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                              "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                              "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                              "srmr", "aic", "bic")], 3)
-
-## ------------------------------------------------------------------------------------
-
-# job demands model 
-jdem_model <- '
-# regressions
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-'
-
-# CFA results - transfer (MLR)
-fit_jdem <- cfa(jdem_model, data = work_data2, estimator = 'MLR')
-summary(fit_jdem, fit.measures = TRUE, standardized = TRUE)
-fit_jdem_t1 <- round(fitMeasures(fit_jdem)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                             "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                             "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                             "srmr", "aic", "bic")], 3)
-
-
-## ------------------------------------------------------------------------------------
-
-# work engagement model 
-we_model <- '
-# regressions
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-'
-
-# CFA results - transfer (MLR)
-fit_we <- cfa(we_model, data = work_data2, estimator = 'MLR')
-summary(fit_we, fit.measures = TRUE, standardized = TRUE)
-fit_eng_t1 <- round(fitMeasures(fit_we)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                          "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                          "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                          "srmr", "aic", "bic")], 3)
-
-
-# Fit the Confirmatory Factor Analysis (CFA).
-
-we_model_bif <- '
-we      =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-vig     =~ uwes1 + uwes2 + uwes5
-dedic   =~ uwes3 + uwes4 + uwes7
-absor   =~ uwes6 + uwes8 + uwes9
-we      ~~ 0*vig
-we      ~~ 0*dedic
-we      ~~ 0*absor
+eng     ~~ 0*vig
+eng     ~~ 0*dedic
+eng     ~~ 0*absor
 vig     ~~ 0*dedic
 vig     ~~ 0*absor
 dedic   ~~ 0*absor
-#uwes1 ~~ 0*uwes1
+
+uwes1 ~~ a*uwes1  
+uwes3 ~~ b*uwes3
+
+
+opport =~ NA*opp37 + opp39 + opp312
+motiv =~ NA*mot26 + mot28 + mot212
+transfer =~ NA*use1 + use3 + use5 + use7
+
+opport ~~ 1*opport 
+motiv ~~ 1*motiv
+transfer ~~ 1*transfer
+
+
+# correlations
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ jres
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+transfer ~~ eng
+
+opport ~~ motiv
+opport ~~ transfer
+
+motiv ~~ transfer
+
+
+jres ~~ 0*vig
+jres ~~ 0*dedic
+jres ~~ 0*absor
+jdem ~~ 0*vig
+jdem ~~ 0*dedic
+jdem ~~ 0*absor
+opport ~~ 0*vig
+opport ~~ 0*dedic
+opport ~~ 0*absor
+motiv ~~ 0*vig
+motiv ~~ 0*dedic
+motiv ~~ 0*absor
+transfer ~~ 0*vig
+transfer ~~ 0*dedic
+transfer ~~ 0*absor
+
+# constraints
+a > 0.1
+b > 0.1
 '
 
-fit_we_bif <- cfa(we_model_bif, data = work_data2, estimator = 'MLR', control = list(eval.max = 10000))
-summary(fit_we_bif, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
-fit_eng_bif <- round(fitMeasures(fit_we_bif)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                          "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                          "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                          "srmr", "aic", "bic")], 3)
+
+fit_transf_corr <- sem(transfer_corr_model, data = work_data2, estimator = 'MLR')
+sem_corr <- summary(fit_transf_corr, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
+fit_corr <- round(fitMeasures(fit_transf_corr)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                      "srmr", "aic", "bic")], 3)
 
 
 
-## ------------------------------------------------------------------------------------
-
-# motivation to transfer model 
-motiv_model <- '
-# regressions
-motiv =~ mot26 + mot28 + mot212
-'
-
-# CFA results - transfer (MLR)
-fit_motiv <- cfa(motiv_model, data = work_data2, estimator = 'MLR')
-summary(fit_motiv, fit.measures = TRUE, standardized = TRUE)
-fit_motiv_t1 <- round(fitMeasures(fit_motiv)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                               "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                               "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                               "srmr", "aic", "bic")], 3)
 
 
-## ------------------------------------------------------------------------------------
+# 1.3.2. creating dataframe for Table 1. (corr between latent vars) --------------
 
-# opportunity to transfer model 
-opport_model <- '
-# regressions
-opport =~ opp37 + opp39 + opp312
-'
-
-# CFA results - transfer (MLR)
-fit_opport <- cfa(opport_model, data = work_data2, estimator = 'MLR')
-summary(fit_opport, fit.measures = TRUE, standardized = TRUE)
-fit_opport_t1 <- round(fitMeasures(fit_opport)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                                 "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                                 "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                                 "srmr", "aic", "bic")], 3)
-
-## ------------------------------------------------------------------------------------
-
-# training transfer model 
-tr_model <- '
-# regressions
-transfer =~ use1 + use3 + use5 + use7
-'
-
-# CFA results - transfer (MLR)
-fit_tr <- cfa(tr_model, data = work_data2, estimator = 'MLR')
-summary(fit_tr, fit.measures = TRUE, standardized = TRUE)
-fit_transfer_t1 <- round(fitMeasures(fit_tr)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                               "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                               "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                               "srmr", "aic", "bic")], 3)
+corr_estimates <- sem_corr$PE[57:71,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
+corr_estimates_nr <- sem_corr$PE[57:71,c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt <- sem_corr$PE[57:71,c("lhs", "op", "rhs")]
 
 
+# add significance stars from p values
+corr_estimates_nr$sign <- stars.pval(corr_estimates_nr$pvalue)
+corr_estimates_sign_nr <- corr_estimates_nr[1:15,"sign"]
+corr_estimates_nr <- corr_estimates_nr[1:15,1:4]
 
+# change class to numeric
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
+corr_estimates_nr[] <- lapply(corr_estimates_nr, function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+sapply(corr_estimates_nr, class)
+
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
+corr_estimates_nr2 <- data.frame(lapply(corr_estimates_nr, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+
+
+# bind columns that contain text, modified numeric values and significance stars 
+corr_estimates2 <- cbind(med_estimates_txt, corr_estimates_nr2, corr_estimates_sign_nr)
+
+corr_estimates2 <- corr_estimates2 %>% 
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
+  unite("standardized", c(std.all, corr_estimates_sign_nr), sep = "", remove = TRUE)
+
+corr_estimates2$`95% CI` <- corr_estimates2$`95% CI` %>%
+  paste("[", ., "]")
+
+corr_estimates3 <- corr_estimates2[1:15,c(1,3,6)]
+
+
+library(reshape2) # for creating matrix from data frame columns
+latent_corr <- acast(corr_estimates3, lhs~rhs, value.var="standardized")
+
+latent_corr[1, 2] <- latent_corr[2, 1]
+latent_corr[4, 1] <- latent_corr[1, 3]
+latent_corr[5, 1] <- latent_corr[1, 4]
+latent_corr[4, 2] <- latent_corr[2, 3]
+latent_corr[5, 2] <- latent_corr[2, 4]
+latent_corr[4, 4] <- latent_corr[5, 3]
+
+
+latent_corr1 <- latent_corr[1:5, 1:2]
+latent_corr2 <- latent_corr[1:5, 3:5]
+
+
+transf <- as.matrix(t(latent_corr[,5]))
+rownames(transf) <- c("transfer")
+transf_col <- as.matrix(NA)
+colnames(transf_col) <- c("transfer")
+rownames(transf_col) <- c("transfer")
+transf <- cbind(transf, transf_col)
+
+
+
+
+jres <- as.matrix(latent_corr[3,])
+colnames(jres) <- c("jres")
+
+jres1 <- as.matrix(jres[1:2, 1])
+jres2 <- as.matrix(jres[3:4, 1])
+
+jres_row <- as.matrix(NA)
+rownames(jres_row) <- c("jres")
+jres_new <- rbind(jres1, jres_row, jres2)
+colnames(jres_new) <- c("jres")
+
+latent_corr_tab <- cbind(latent_corr1, jres_new, latent_corr2)
+
+latent_corr_tab2 <- rbind(latent_corr_tab, transf)
+
+
+col.order <- c("jres","jdem","eng","motiv","opport", "transfer")
+row.order <- c("jres","jdem","eng","motiv","opport", "transfer")
+latent_corr_tab3 <- latent_corr_tab2[row.order,col.order]
+latent_corr_tab4 <- as.data.frame(latent_corr_tab3)
+
+latent_corr_tab4[upper.tri(latent_corr_tab4)] <- NA
+
+
+
+
+row.names(latent_corr_tab4) <- c("1. Job Resources", "2. Job Demands", "3. Work Engagement", 
+                                "4. Motivation to Transfer", "5. Opportunity to Transfer",
+                                "6. Training Transfer– Use")
+
+# setting row names to first column
+latent_corr_tab4 <- tibble::rownames_to_column(latent_corr_tab4, " ")
+
+# removing last (empty) column
+latent_corr_tab4[,7] <- NULL
+
+# renaming column names
+latent_corr_tab4 <- latent_corr_tab4 %>%  
+  rename(
+    "1" = jres,
+    "2" = jdem,
+    "3" = eng,
+    "4" = motiv,
+    "5" = opport)
+
+
+# Table 1. Bivariate correlations between LATENT variables ----------------
+
+# designing final correlation table
+designed_corr_table <- latent_corr_tab4 %>% 
+  flextable() %>% 
+  # hline(i = 6, part = "body", border = officer::fp_border()) %>% 
+  fontsize(size = 10, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>% 
+  # width(width = 0.59) %>% 
+  autofit() %>% 
+  #  set_table_properties(width = 1) %>% 
+  add_footer_lines(c("Note. N = 311.", 
+                     "* p < .05, ** p < .01, *** p < .001"))
+
+# saving final table to word file
+save_as_docx("Table 1. Bivariate correlations between latent variables" = designed_corr_table, 
+             path = "JDR, WE, Transfer latent correlation table.docx")
+
+
+
+
+## ----------------------------------------------- MAIN ANALYSIS ------------------------------------------
 
 # JDR and Transfer basic model --------------------------------------------
 
@@ -460,105 +552,6 @@ fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled
                                   "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                   "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                   "srmr", "aic", "bic")], 3)
-
-lavInspect(fit_transfer1, "rsquare")
-# transfer r2 = .684
-# eng r2 = .294
-# motiv r2 = .103
-# opport r2 = .137
-
-beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
-beta_values[30:42,]
-
-
-
-
-# correlation model with bifactor work eng --------------------------------
-
-# transfer model 1 (jdr9 was removed because its loading was below the .3 threshold)
-transfer_model1 <- '
-# regressions
-jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
-jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-jres ~~ 1*jres
-jdem ~~ 1*jdem
-
-eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-vig     =~ NA*uwes1 + uwes2 + uwes5
-dedic   =~ NA*uwes3 + uwes4 + uwes7
-absor   =~ NA*uwes6 + uwes8 + uwes9
-
-eng ~~ 1*eng
-vig ~~ 1*vig
-dedic ~~ 1*dedic
-absor ~~  1*absor
-
-eng     ~~ 0*vig
-eng     ~~ 0*dedic
-eng     ~~ 0*absor
-vig     ~~ 0*dedic
-vig     ~~ 0*absor
-dedic   ~~ 0*absor
-
-uwes1 ~~ a*uwes1  
-uwes3 ~~ b*uwes3
-
-
-opport =~ NA*opp37 + opp39 + opp312
-motiv =~ NA*mot26 + mot28 + mot212
-transfer =~ NA*use1 + use3 + use5 + use7
-
-opport ~~ 1*opport 
-motiv ~~ 1*motiv
-transfer ~~ 1*transfer
-
-
-# correlations
-jres ~~ jdem
-jres ~~ eng
-jres ~~ opport
-jres ~~ motiv
-jres ~~ transfer
-jdem ~~ eng
-jdem ~~ opport
-jdem ~~ motiv
-jdem ~~ transfer
-eng ~~ opport
-eng ~~ motiv
-eng ~~ transfer
-opport ~~ motiv
-opport ~~ transfer
-motiv ~~ transfer
-
-jres ~~ 0*vig
-jres ~~ 0*dedic
-jres ~~ 0*absor
-jdem ~~ 0*vig
-jdem ~~ 0*dedic
-jdem ~~ 0*absor
-opport ~~ 0*vig
-opport ~~ 0*dedic
-opport ~~ 0*absor
-motiv ~~ 0*vig
-motiv ~~ 0*dedic
-motiv ~~ 0*absor
-transfer ~~ 0*vig
-transfer ~~ 0*dedic
-transfer ~~ 0*absor
-
-# constraints
-a > 0.1
-b > 0.1
-'
-
-
-fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
-summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_t3 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                                      "srmr", "aic", "bic")], 3)
 
 lavInspect(fit_transfer1, "rsquare")
 # transfer r2 = .684
@@ -1022,118 +1015,7 @@ mediat <- as.data.frame(Mediator)
 
 mod_table <- cbind(variables, total, direct, mediat, indirect)
 
-# mod_tables <- rbind(mod_table_jr_m_t, mod_table)
-# 
-# # designing final correlation table
-# designed_table_med <- mod_tables %>%
-#   flextable() %>%
-#   set_header_labels(
-#     variables0 = "",
-#     total_beta = "Total effect",
-#     total_ci = "",
-#     direct_beta = " Direct effect",
-#     direct_ci = "",
-#     Mediator = "Mediator",
-#     indirect_beta = "Indirect effect",
-#     indirect_ci = ""
-#   ) %>%
-#   add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"),
-#                  top = FALSE) %>%
-#   merge_at(i = 1, j = 2:3, part = "head") %>%
-#   merge_at(i = 1, j = 4:5, part = "head") %>%
-#   merge_at(i = 1, j = 7:8, part = "head") %>%
-#   hline(i = 2,
-#         part = "head",
-#         border = officer::fp_border(width = 2)) %>%
-#   hline(i = 1,
-#         part = "head",
-#         border = officer::fp_border("white")) %>%
-#   fontsize(size = 11, part = "all") %>%
-#   font(fontname = "Times New Roman", part = "all") %>%
-#   align(align = "left", part = "all") %>%
-#   # width(width = 0.86) %>%
-#   autofit() %>%
-#   add_footer_lines(
-#     c(
-#       "Note. Bootstrapped confidence intervals were based on 10,000 replications and were estimated with maximum likelihood estimation method given that bootstrapping is not available for the MLR estimator",
-#       "β standardized regression weights, 95% CI bias-corrected bootstrapped confidence intervals",
-#       "* p < .05, ** p < .01, *** p < .001"
-#     )
-#   )
-# 
-# # saving final table to word file
-# save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
-#              path = "Mediation analysis table.docx")
 
-
-
-# job resources -> work engagement -> opportunity -> transfer -------------
-# 
-# mod1b <- '
-# jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-# eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-# opport =~ opp37 + opp39 + opp312
-# transfer =~ use1 + use3 + use5 + use7
-# 
-#  # a1 path
-#  eng ~ a1 * jres
-# 
-#  # b1 path
-#  transfer ~ b1 * eng
-#  
-#  # a2 path
-#  opport ~ a2 * jres
-# 
-#  # b2 path
-#  transfer ~ b2 * opport
-#  
-#   # c prime path 
-#  transfer ~ cp * jres
-# 
-#  # indirect and total effects
-#  a1b1 := a1 * b1
-#  a2b2 := a2 * b2
-#  total := cp + a1b1 + a2b2'
-# 
-# fsem1b <- sem(mod1b, data = work_data2, se = "bootstrap", bootstrap = 10000)
-# 
-# # summary(fsem1b, standardized = TRUE)
-# 
-# med_estimates_fullb <- parameterestimates(fsem1b, boot.ci.type = "bca.simple", standardized = TRUE) 
-# 
-# #med_estimatesb <- med_estimates_fullb[c(22:26, 52:54),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-# med_estimates_nrb <- med_estimates_fullb[c(22:26, 52:54),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-# med_estimates_txtb <- med_estimates_fullb[c(22:26, 52:54),c("lhs", "op", "rhs", "label")]
-# 
-# # add significance stars from p values
-# med_estimates_nrb$sign <- stars.pval(med_estimates_nrb$pvalue)
-# med_estimates_signb <- med_estimates_nrb[1:8,"sign"]
-# med_estimates_nrb <- med_estimates_nrb[1:8,1:4]
-# 
-# # change class to numeric
-# # solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-# med_estimates_nrb[] <- lapply(med_estimates_nrb, function(x) {
-#   if(is.character(x)) as.numeric(as.character(x)) else x
-# })
-# sapply(med_estimates_nrb, class)
-# 
-# # removing leading zeros in numbers
-# # solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-# med_estimates_nr2b <- data.frame(lapply(med_estimates_nrb, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
-# 
-# 
-# # bind columns that contain text, modified numeric values and significance stars 
-# med_estimates_2b <- cbind(med_estimates_txtb, med_estimates_nr2b, med_estimates_signb)
-# 
-# med_estimates_2b <- med_estimates_2b %>% 
-#   unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
-#   unite("standardized", c(std.all, med_estimates_signb), sep = "", remove = TRUE)
-# 
-# med_estimates_2b$`95% CI` <- med_estimates_2b$`95% CI` %>% 
-#   paste("[", ., "]")
- 
-
-# previous model with an extra step in the path ---------------------------
 # job resources -> work engagement -> opportunity -> transfer -------------
 
 mod1b <- '
@@ -1295,6 +1177,8 @@ mediat <- as.data.frame(Mediator)
 
 mod_tableb3 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, mediat, indirect)
 
+
+# adding each mediation models to one table -------------------------------
 
 
 mod_tables <- rbind(mod_table, mod_tableb1, mod_tableb2, mod_tableb3, mod_table_jr_m_t)
