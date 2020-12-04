@@ -7,6 +7,7 @@ library(semTools)  # for calculating Cronbach alpha
 library(semPlot)  # for making SEM path models
 library(flextable) # for making regression table and descriptive table publication ready
 library(gtools) # for adding significance stars e.g., to standardized parameter estimates
+library(reshape2) # for creating matrix from data frame columns used for correlations of latent variables 
 
 # import database
 work_data <- read_sav("data/Transfer_factors.sav")
@@ -320,8 +321,7 @@ corr_estimates2$`95% CI` <- corr_estimates2$`95% CI` %>%
 
 corr_estimates3 <- corr_estimates2[1:15,c(1,3,6)]
 
-
-library(reshape2) # for creating matrix from data frame columns
+# library(reshape2) used here for creating matrix from data frame columns
 latent_corr <- acast(corr_estimates3, lhs~rhs, value.var="standardized")
 
 latent_corr[1, 2] <- latent_corr[2, 1]
