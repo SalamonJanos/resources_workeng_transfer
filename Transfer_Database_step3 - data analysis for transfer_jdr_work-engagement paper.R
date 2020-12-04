@@ -14,7 +14,7 @@ work_data <- read_sav("data/Transfer_factors.sav")
 
 ## -------------------------------------------------- Preparation for analysis ---------------------------------------------------
 
-# creating necessary variables for visualization
+# creating necessary variables for analysis
 work_data2 <- work_data %>% 
   filter(Study == 2) %>% 
   filter(Open_or_Closed_Skills == "Open") %>% 
@@ -24,10 +24,16 @@ work_data2 <- work_data %>%
 
 ## ---------------------------------------------------- 1. Preliminary analyses -----------------------------------------------------
 
-
 ## -------------------------- 1.1. Internal consistency (alpha and omega) calculation ---------------------------
 
 # calculating Cronbach alpha for Job resources
+
+# resources_factor_original <- '
+# res_factor_orig =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11'
+# fit_resources_orig <- cfa(resources_factor_original, data = work_data2, estimator = 'MLR')
+# summary(fit_resources_orig, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
+# # factor loading of jdr9 did not reach 0.3 so it will be removed from the further phases of the analysis
+
 resources_factor <- '
 res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11'
 
@@ -45,29 +51,7 @@ demands_rel <- as.data.frame(reliability(fit_demands))
 
 # calculating Cronbach alpha for Engagement
 engagement_factor <- '
-eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-vig     =~ NA*uwes1 + uwes2 + uwes5
-dedic   =~ NA*uwes3 + uwes4 + uwes7
-absor   =~ NA*uwes6 + uwes8 + uwes9
-
-eng ~~ 1*eng
-vig ~~ 1*vig
-dedic ~~ 1*dedic
-absor ~~  1*absor
-
-eng     ~~ 0*vig
-eng     ~~ 0*dedic
-eng     ~~ 0*absor
-vig     ~~ 0*dedic
-vig     ~~ 0*absor
-dedic   ~~ 0*absor
-
-uwes1 ~~ a*uwes1  
-uwes3 ~~ b*uwes3
-
-# constraints
-a > 0.1
-b > 0.1'
+eng     =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
 
 fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLR')
 eng_rel <- as.data.frame(reliability(fit_engagement))
@@ -120,11 +104,6 @@ corr_input <- c("job_resources", "job_demands", "uwes_all", "opportunity", "moti
 
 corr_table <- work_data2 %>% 
   select(., one_of(corr_input))
-
-# # checking descriptives of items
-# job_demands_inp <- c("jdr2", "jdr4", "jdr6", "jdr8", "jdr10")
-# jdem_descriptives <- as.data.frame(psych::describe(work_data2[,job_demands_inp], skew = TRUE))
-
 
 
 # 1.2.2. function to create Spearman corr table ---------------------------
@@ -255,54 +234,27 @@ designed_table <- combined_tables %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 1. Descriptive statistics and Spearman bivariate correlations between variables" = designed_table, 
-             path = "JDR, WE, Transfer correlation table.docx")
+save_as_docx("Table -. Descriptive statistics and Spearman bivariate correlations between measured variables" = designed_table, 
+             path = "Table - JDR, WE, Transfer correlation table of measured variables.docx")
 
 
 
 ## ---------------------------------------- 1.3. CORRELATION of LATENT factors ------------------------------------
 
 
-# 1.3.1. correlation model with bifactor work eng --------------------------------
+# 1.3.1. correlation model --------------------------------
 
 # transfer model 1 
 transfer_corr_model <- '
 # regressions
-jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
-jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
 
-jres ~~ 1*jres
-jdem ~~ 1*jdem
+eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 
-eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-vig     =~ NA*uwes1 + uwes2 + uwes5
-dedic   =~ NA*uwes3 + uwes4 + uwes7
-absor   =~ NA*uwes6 + uwes8 + uwes9
-
-eng ~~ 1*eng
-vig ~~ 1*vig
-dedic ~~ 1*dedic
-absor ~~  1*absor
-
-eng     ~~ 0*vig
-eng     ~~ 0*dedic
-eng     ~~ 0*absor
-vig     ~~ 0*dedic
-vig     ~~ 0*absor
-dedic   ~~ 0*absor
-
-uwes1 ~~ a*uwes1  
-uwes3 ~~ b*uwes3
-
-
-opport =~ NA*opp37 + opp39 + opp312
-motiv =~ NA*mot26 + mot28 + mot212
-transfer =~ NA*use1 + use3 + use5 + use7
-
-opport ~~ 1*opport 
-motiv ~~ 1*motiv
-transfer ~~ 1*transfer
-
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+transfer =~ use1 + use3 + use5 + use7
 
 # correlations
 jres ~~ eng
@@ -322,27 +274,6 @@ opport ~~ motiv
 opport ~~ transfer
 
 motiv ~~ transfer
-
-
-jres ~~ 0*vig
-jres ~~ 0*dedic
-jres ~~ 0*absor
-jdem ~~ 0*vig
-jdem ~~ 0*dedic
-jdem ~~ 0*absor
-opport ~~ 0*vig
-opport ~~ 0*dedic
-opport ~~ 0*absor
-motiv ~~ 0*vig
-motiv ~~ 0*dedic
-motiv ~~ 0*absor
-transfer ~~ 0*vig
-transfer ~~ 0*dedic
-transfer ~~ 0*absor
-
-# constraints
-a > 0.1
-b > 0.1
 '
 
 
@@ -353,15 +284,11 @@ fit_corr <- round(fitMeasures(fit_transf_corr)[c("chisq.scaled", "df.scaled", "p
                                                       "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                                       "srmr", "aic", "bic")], 3)
 
-
-
-
-
 # 1.3.2. creating dataframe for Table 1. (corr between latent vars) --------------
 
-corr_estimates <- sem_corr$PE[57:71,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
-corr_estimates_nr <- sem_corr$PE[57:71,c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txt <- sem_corr$PE[57:71,c("lhs", "op", "rhs")]
+corr_estimates <- sem_corr$PE[30:44,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
+corr_estimates_nr <- sem_corr$PE[30:44,c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt <- sem_corr$PE[30:44,c("lhs", "op", "rhs")]
 
 
 # add significance stars from p values
@@ -482,88 +409,27 @@ designed_corr_table <- latent_corr_tab4 %>%
 
 # saving final table to word file
 save_as_docx("Table 1. Bivariate correlations between latent variables" = designed_corr_table, 
-             path = "JDR, WE, Transfer latent correlation table.docx")
+             path = "Table 1 - JDR, WE, Transfer correlation table of latent variables.docx")
 
 
 
 
 ## ----------------------------------------------- MAIN ANALYSIS ------------------------------------------
 
-# JDR and Transfer basic model --------------------------------------------
 
-## JDR - Transfer model
-# transfer model 01  
-transfer_model01 <- '
+# predictive model --------------------------------------------------------
+
+# transfer model 
+transfer_model <- '
 # regressions
-jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
-jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-jres ~~ 1*jres
-jdem ~~ 1*jdem
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
 
-transfer =~ NA*use1 + use3 + use5 + use7
-transfer ~~ 1*transfer
+eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 
-# path
-transfer ~ jres + jdem
-
-# correlations
-jres ~~ jdem
-'
-
-# SEM results - transfer (MLR)
-fit_transfer01 <- sem(transfer_model01, data = work_data2, estimator = 'MLR')
-summary(fit_transfer01, fit.measures = TRUE, standardized = TRUE)
-fit_transfer_t1 <- round(fitMeasures(fit_transfer01)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                                       "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                                       "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                                       "srmr", "aic", "bic")], 3)
-
-
-lavInspect(fit_transfer01, "rsquare")
-# transfer r2 = 0.073
-# while the model fit is good, they do not explain much of the training transfer variance
-
-
-
-# predictive model with bifactor work eng ---------------------------------
-
-# transfer model 1 
-transfer_model1 <- '
-# regressions
-jres =~  NA*jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11 
-jdem =~ NA*jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-jres ~~ 1*jres
-jdem ~~ 1*jdem
-
-eng     =~ NA*uwes2 + uwes1 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-vig     =~ NA*uwes1 + uwes2 + uwes5
-dedic   =~ NA*uwes3 + uwes4 + uwes7
-absor   =~ NA*uwes6 + uwes8 + uwes9
-
-eng ~~ 1*eng
-vig ~~ 1*vig
-dedic ~~ 1*dedic
-absor ~~  1*absor
-
-eng     ~~ 0*vig
-eng     ~~ 0*dedic
-eng     ~~ 0*absor
-vig     ~~ 0*dedic
-vig     ~~ 0*absor
-dedic   ~~ 0*absor
-
-uwes1 ~~ a*uwes1  
-uwes3 ~~ b*uwes3
-
-
-opport =~ NA*opp37 + opp39 + opp312
-motiv =~ NA*mot26 + mot28 + mot212
-transfer =~ NA*use1 + use3 + use5 + use7
-
-opport ~~ 1*opport 
-motiv ~~ 1*motiv
-transfer ~~ 1*transfer
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+transfer =~ use1 + use3 + use5 + use7
 
 
 # paths
@@ -579,45 +445,24 @@ eng ~ jres + jdem
 # correlations
 jres ~~ jdem
 opport ~~ motiv
-
-jres ~~ 0*vig
-jres ~~ 0*dedic
-jres ~~ 0*absor
-jdem ~~ 0*vig
-jdem ~~ 0*dedic
-jdem ~~ 0*absor
-opport ~~ 0*vig
-opport ~~ 0*dedic
-opport ~~ 0*absor
-motiv ~~ 0*vig
-motiv ~~ 0*dedic
-motiv ~~ 0*absor
-transfer ~~ 0*vig
-transfer ~~ 0*dedic
-transfer ~~ 0*absor
-
-
-# constraints
-a > 0.1
-b > 0.1
 '
 
 
-fit_transfer1 <- sem(transfer_model1, data = work_data2, estimator = 'MLR')
-summary(fit_transfer1, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_t2 <- round(fitMeasures(fit_transfer1)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+fit_transfer <- sem(transfer_model, data = work_data2, estimator = 'MLR')
+summary(fit_transfer, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+fit_transfer_t1 <- round(fitMeasures(fit_transfer)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
                                                       "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                                       "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                                       "srmr", "aic", "bic")], 3)
 
-lavInspect(fit_transfer1, "rsquare")
-# transfer r2 = .685
-# eng r2 = .304
-# motiv r2 = .102
-# opport r2 = .138
+lavInspect(fit_transfer, "rsquare")
+# transfer r2 = .684
+# eng r2 = .294
+# motiv r2 = .103
+# opport r2 = .137
 
-beta_values <- parameterEstimates(fit_transfer1, standardized = TRUE)
-beta_values[57:69,]
+beta_values <- parameterEstimates(fit_transfer, standardized = TRUE)
+beta_values[30:44,]
 
 
 
@@ -636,53 +481,33 @@ fit_transfer_t1b <- t(fit_transfer_t1)
 fit_transfer_t1b <- as.data.frame(fit_transfer_t1b)
 
 
-
-# fit_transfer_t2
-fit_transfer_t2 <- as.data.frame(fit_transfer_t2)
-# setting row names to first column
-fit_transfer_t2 <- tibble::rownames_to_column(fit_transfer_t2, " ")
-names(fit_transfer_t2) <- NULL
-
-fit_transfer_t2b <- t(fit_transfer_t2)
-fit_transfer_t2b <- as.data.frame(fit_transfer_t2b)
-
-
-
 header.true <- function(df) {
   names(df) <- as.character(unlist(df[1,]))
   df[-1,]
 }
 
 fittable1 <- header.true(fit_transfer_t1b)
-fittable2 <- header.true(fit_transfer_t2b)
 
-
-
-combined_fit_tables <- rbind(fittable1, fittable2)
 
 # solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-combined_fit_tables[] <- lapply(combined_fit_tables, function(x) {
+fittable1[] <- lapply(fittable1, function(x) {
   if(is.character(x)) as.numeric(as.character(x)) else x
 })
-sapply(combined_fit_tables, class)
+sapply(fittable1, class)
 
 # removing leading zeros in numbers
 # solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-combined_fit_tables2 <- data.frame(lapply(combined_fit_tables, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+fittable1_2 <- data.frame(lapply(fittable1, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
 
-combined_fit_tables2 <- combined_fit_tables2 %>% 
+fittable1_2 <- fittable1_2 %>% 
   unite(RMSEA_CI, c(rmsea.ci.lower.scaled, rmsea.ci.upper.scaled), sep = " - ", remove = TRUE)
 
-Model <- c("JDR - Transfer model", 
-           "Proposed model")
+Model <- c("Proposed model")
 models <- as.data.frame(Model)
 
-combined_fit_tables3 <- cbind(models, combined_fit_tables2)
+combined_fit_table <- cbind(models, fittable1_2)
 
-# # setting row names to first column
-# combined_fit_tables3 <- tibble::rownames_to_column(combined_fit_tables3, " ")
-
-combined_fit_tables3 <- combined_fit_tables3 %>%  
+combined_fit_table <- combined_fit_table %>%  
   rename(
     "Chi2" = chisq.scaled,
     "df" = df.scaled,
@@ -698,7 +523,7 @@ combined_fit_tables3 <- combined_fit_tables3 %>%
 
 
 # designing final goodness-of-fit statistics table
-designed_table <- combined_fit_tables3 %>% 
+designed_table <- combined_fit_table %>% 
   flextable() %>% 
   fontsize(size = 10, part = "all") %>%
   font(fontname = "Times New Roman", part = "all") %>%
@@ -708,7 +533,7 @@ designed_table <- combined_fit_tables3 %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 2. Goodness-of-fit statistics for the predictive models" = designed_table, path = "Goodness-of-fit statistics - predictive models table.docx")
+save_as_docx("Table 2. Goodness-of-fit statistics for the predictive model" = designed_table, path = "Table 2 - Goodness-of-fit statistics - predictive model table.docx")
 
 
 
@@ -716,13 +541,12 @@ save_as_docx("Table 2. Goodness-of-fit statistics for the predictive models" = d
 ## -------------------------------------------------- Table 3. Mediation analysis ------------------------------------------------
 
 
+
 # job resources -> motivation to transfer -> transfer ---------------------
 
 # used abbrev: jr = job resources, m = motivation to transfer, t = training transfer
 mod_jr_m_t <- '
 jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-# eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-# opport =~ opp37 + opp39 + opp312
 motiv =~ mot26 + mot28 + mot212
 transfer =~ use1 + use3 + use5 + use7
 
@@ -742,11 +566,9 @@ transfer =~ use1 + use3 + use5 + use7
 
 fsem_jr_m_t <- sem(mod_jr_m_t, data = work_data2, se = "bootstrap", bootstrap = 10000)
 
-# summary(fsem_jr_m_t, standardized = TRUE)
-
 med_estimates_full_jr_m_t <- parameterestimates(fsem_jr_m_t, boot.ci.type = "bca.simple", standardized = TRUE) 
 
-# med_estimates_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
 med_estimates_nr_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("pvalue", "ci.lower", "ci.upper", "std.all")]
 med_estimates_txt_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("lhs", "op", "rhs", "label")]
 
@@ -805,8 +627,6 @@ mod_table_jr_m_t <- cbind(variables, total, direct, mediat, indirect)
 
 
 
-
-
 # job resources -> work engagement -> opportunity to transfer -------------
 
 mod1 <- '
@@ -829,13 +649,11 @@ opport =~ opp37 + opp39 + opp312
 
 fsem1 <- sem(mod1, data = work_data2, se = "bootstrap", bootstrap = 10000)
 
-# summary(fsem1, standardized = TRUE)
+med_estimates_opp <- parameterestimates(fsem1, boot.ci.type = "bca.simple", standardized = TRUE)
 
-med_estimates_full <- parameterestimates(fsem1, boot.ci.type = "bca.simple", standardized = TRUE) 
-
-# med_estimates <- med_estimates_full[c(18:20, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_nr <- med_estimates_full[c(18:20, 41:42),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txt <- med_estimates_full[c(18:20, 41:42),c("lhs", "op", "rhs", "label")]
+med_estimates <- med_estimates_opp[c(18:20, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nr <- med_estimates_opp[c(18:20, 41:42),c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt <- med_estimates_opp[c(18:20, 41:42),c("lhs", "op", "rhs", "label")]
 
 # add significance stars from p values
 med_estimates_nr$sign <- stars.pval(med_estimates_nr$pvalue)
@@ -890,6 +708,7 @@ mediat <- as.data.frame(Mediator)
 mod_table <- cbind(variables, total, direct, mediat, indirect)
 
 
+
 # job resources -> work engagement -> opportunity -> transfer -------------
 
 mod1b <- '
@@ -925,13 +744,11 @@ transfer =~ use1 + use3 + use5 + use7
 
 fsem1b <- sem(mod1b, data = work_data2, se = "bootstrap", bootstrap = 10000)
 
-# summary(fsem1b, standardized = TRUE)
+med_estimates_full <- parameterestimates(fsem1b, boot.ci.type = "bca.simple", standardized = TRUE)
 
-med_estimates_fullb <- parameterestimates(fsem1b, boot.ci.type = "bca.simple", standardized = TRUE) 
-
-#med_estimatesb <- med_estimates_fullb[c(22:27, 53:56),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_nrb <- med_estimates_fullb[c(22:27, 53:56),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txtb <- med_estimates_fullb[c(22:27, 53:56),c("lhs", "op", "rhs", "label")]
+med_estimatesb <- med_estimates_full[c(22:27, 53:56),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nrb <- med_estimates_full[c(22:27, 53:56),c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txtb <- med_estimates_full[c(22:27, 53:56),c("lhs", "op", "rhs", "label")]
 
 # add significance stars from p values
 med_estimates_nrb$sign <- stars.pval(med_estimates_nrb$pvalue)
@@ -992,11 +809,6 @@ mod_tableb1 <- cbind(variables, total, direct, mediat, indirect)
 variables0 <- ""
 variables <- as.data.frame(variables0) 
 
-# direct <- med_estimates_2b[5, c("standardized", "95% CI")]
-# direct <- direct %>% 
-#   rename("direct_beta" = standardized,
-#          "direct_ci" = `95% CI`) 
-
 direct_beta <- ""
 direct_b <- as.data.frame(direct_beta) 
 direct_ci <- "" 
@@ -1006,11 +818,6 @@ indirect <- med_estimates_2b[8, c("standardized", "95% CI")]
 indirect <- indirect %>% 
   rename("indirect_beta" = standardized,
          "indirect_ci" = `95% CI`)
-
-# total <- med_estimates_2b[8, c("standardized", "95% CI")]
-# total <- total %>% 
-#   rename("total_beta" = standardized,
-#          "total_ci" = `95% CI`)
 
 total_beta <- ""
 total_b <- as.data.frame(total_beta) 
@@ -1094,7 +901,7 @@ designed_table_med <- mod_tables %>%
 
 # saving final table to word file
 save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
-             path = "Mediation analysis table.docx")
+             path = "Table 3 - Mediation analysis table.docx")
 
 
 
@@ -1103,13 +910,13 @@ save_as_docx("Table 3. Mediation analysis including total, direct, and indirect 
 ## ------------------- Table S1. Standardized Parameter Estimates from the Predictive model (modified) ---------------------------
 
 
-lambda <- inspect(fit_transfer1,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
-#inspect(fit_transfer1,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
-estimates <- standardizedSolution(fit_transfer1) # it shows what we need, both lamda and theta (est.std column)
+lambda <- inspect(fit_transfer,what="std")$lambda # lambda (standardized factor loadings) - λ = Factor loading
+#inspect(fit_transfer,what="std")$theta # theta (observed error covariance matrix) - δ = Item uniqueness 
+estimates <- standardizedSolution(fit_transfer) # it shows what we need, both lamda and theta (est.std column)
 
 #estimates2 <- estimates[c(1:29,46:74),c("lhs", "op", "rhs", "est.std")]
 #lambda2 <- estimates[1:29,c("lhs", "op", "rhs", "est.std")]
-unique <- estimates[46:74,c("lhs", "est.std")]
+unique <- estimates[45:73,c("lhs", "est.std")]
 
 estimates_t <- cbind(lambda, unique)
 # after checking each rows contain lambda and theta in the appropriate line, we can remove unnecessary column
@@ -1170,20 +977,20 @@ designed_table_est <- estimate_table3 %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table S1. Parameter Estimates" = designed_table_est, path = "Parameter Estimates table.docx")
+save_as_docx("Table S1. Parameter Estimates" = designed_table_est, path = " Table S1 - Parameter Estimates table.docx")
 
 
 
 ## ------------------------------- Figure 1 (will be changed probably to DiagrammeR / TidySEM) -----------------------------------
 
 
-pathdiagram1 <- semPaths(fit_transfer1, 
+pathdiagram1 <- semPaths(fit_transfer, 
                          layout = "tree2", centerLevels = TRUE,
                          whatLabels = "std", edge.label.cex = 1,
                          style="lisrel")
 
 
-# pathdiagram1 <- semPaths(fit_transfer1, 
+# pathdiagram1 <- semPaths(fit_transfer, 
 #                          rotation = 2,
 #                          layout = "tree3", centerLevels = TRUE,
 #                          whatLabels = "std", edge.label.cex = 1,
