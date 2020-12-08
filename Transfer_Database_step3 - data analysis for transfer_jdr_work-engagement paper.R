@@ -461,10 +461,8 @@ lavInspect(fit_transfer, "rsquare")
 # motiv r2 = .103
 # opport r2 = .137
 
-beta_values <- parameterEstimates(fit_transfer, standardized = TRUE)
+beta_values <- standardizedSolution(fit_transfer)
 beta_values[30:44,]
-
-
 
 ## ----------------- Table 2. Goodness-of-fit statistics for the estimated measurement and predictive models  --------------------
 
@@ -540,182 +538,23 @@ save_as_docx("Table 2. Goodness-of-fit statistics for the predictive model" = de
 
 ## -------------------------------------------------- Table 3. Mediation analysis ------------------------------------------------
 
+# ALL path model ----------------------------------------------------------
+
+## all mediation models combined between job resources and transfer
+
+# job resources -> motivation to transfer -> transfer
+# job resources -> work engagement -> opportunity -> transfer
+# job demands -> work engagement -> opportunity -> transfer 
 
 
-# job resources -> motivation to transfer -> transfer ---------------------
-
-# used abbrev: jr = job resources, m = motivation to transfer, t = training transfer
-mod_jr_m_t <- '
+modXall <- '
 jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 motiv =~ mot26 + mot28 + mot212
-transfer =~ use1 + use3 + use5 + use7
-
-
- # a path
- motiv ~ a * jres
-
- # b path
- transfer ~ b * motiv
-
- # c prime path 
- transfer ~ cp * jres
-
- # indirect and total effects
- ab := a * b
- total := cp + ab'
-
-fsem_jr_m_t <- sem(mod_jr_m_t, data = work_data2, se = "bootstrap", bootstrap = 10000)
-
-med_estimates_full_jr_m_t <- parameterestimates(fsem_jr_m_t, boot.ci.type = "bca.simple", standardized = TRUE) 
-
-med_estimates_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_nr_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txt_jr_m_t <- med_estimates_full_jr_m_t[c(13:15, 31:32),c("lhs", "op", "rhs", "label")]
-
-
-# add significance stars from p values
-med_estimates_nr_jr_m_t$sign <- stars.pval(med_estimates_nr_jr_m_t$pvalue)
-med_estimates_sign_nr_jr_m_t <- med_estimates_nr_jr_m_t[1:5,"sign"]
-med_estimates_nr_jr_m_t <- med_estimates_nr_jr_m_t[1:5,1:4]
-
-# change class to numeric
-# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-med_estimates_nr_jr_m_t[] <- lapply(med_estimates_nr_jr_m_t, function(x) {
-  if(is.character(x)) as.numeric(as.character(x)) else x
-})
-sapply(med_estimates_nr_jr_m_t, class)
-
-# removing leading zeros in numbers
-# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-med_estimates_nr_jr_m_t2 <- data.frame(lapply(med_estimates_nr_jr_m_t, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
-
-
-# bind columns that contain text, modified numeric values and significance stars 
-med_estimates_jr_m_t2 <- cbind(med_estimates_txt_jr_m_t, med_estimates_nr_jr_m_t2, med_estimates_sign_nr_jr_m_t)
-
-med_estimates_jr_m_t2 <- med_estimates_jr_m_t2 %>% 
-  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
-  unite("standardized", c(std.all, med_estimates_sign_nr_jr_m_t), sep = "", remove = TRUE)
-
-med_estimates_jr_m_t2$`95% CI` <- med_estimates_jr_m_t2$`95% CI` %>% 
-  paste("[", ., "]")
-
-
-variables0 <- "Job Resources -> Transfer (2)"
-variables <- as.data.frame(variables0) 
-
-direct <- med_estimates_jr_m_t2[3, c("standardized", "95% CI")]
-direct <- direct %>% 
-  rename("direct_beta" = standardized,
-         "direct_ci" = `95% CI`)
-
-indirect <- med_estimates_jr_m_t2[4, c("standardized", "95% CI")]
-indirect <- indirect %>% 
-  rename("indirect_beta" = standardized,
-         "indirect_ci" = `95% CI`)
-
-total <- med_estimates_jr_m_t2[5, c("standardized", "95% CI")]
-total <- total %>% 
-  rename("total_beta" = standardized,
-         "total_ci" = `95% CI`)
-
-Mediator <- c("MTT")
-mediat <- as.data.frame(Mediator)
-
-
-mod_table_jr_m_t <- cbind(variables, total, direct, mediat, indirect)
-
-
-
-# job resources -> work engagement -> opportunity to transfer -------------
-
-mod1 <- '
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-opport =~ opp37 + opp39 + opp312
-
- # a path
- eng ~ a * jres
-
- # b path
- opport ~ b * eng
-
- # c prime path 
- opport ~ cp * jres
-
- # indirect and total effects
- ab := a * b
- total := cp + ab'
-
-fsem1 <- sem(mod1, data = work_data2, se = "bootstrap", bootstrap = 10000)
-
-med_estimates_opp <- parameterestimates(fsem1, boot.ci.type = "bca.simple", standardized = TRUE)
-
-med_estimates <- med_estimates_opp[c(18:20, 41:42),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_nr <- med_estimates_opp[c(18:20, 41:42),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txt <- med_estimates_opp[c(18:20, 41:42),c("lhs", "op", "rhs", "label")]
-
-# add significance stars from p values
-med_estimates_nr$sign <- stars.pval(med_estimates_nr$pvalue)
-med_estimates_sign <- med_estimates_nr[1:5,"sign"]
-med_estimates_nr <- med_estimates_nr[1:5,1:4]
-
-# change class to numeric
-# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-med_estimates_nr[] <- lapply(med_estimates_nr, function(x) {
-  if(is.character(x)) as.numeric(as.character(x)) else x
-})
-sapply(med_estimates_nr, class)
-
-# removing leading zeros in numbers
-# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-med_estimates_nr2 <- data.frame(lapply(med_estimates_nr, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
-
-
-# bind columns that contain text, modified numeric values and significance stars 
-med_estimates_2 <- cbind(med_estimates_txt, med_estimates_nr2, med_estimates_sign)
-
-med_estimates_2 <- med_estimates_2 %>% 
-  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
-  unite("standardized", c(std.all, med_estimates_sign), sep = "", remove = TRUE)
-
-med_estimates_2$`95% CI` <- med_estimates_2$`95% CI` %>% 
-  paste("[", ., "]")
-
-
-variables0 <- "Job Resources -> OTT"
-variables <- as.data.frame(variables0) 
-
-direct <- med_estimates_2[3, c("standardized", "95% CI")]
-direct <- direct %>% 
-  rename("direct_beta" = standardized,
-         "direct_ci" = `95% CI`)
-    
-indirect <- med_estimates_2[4, c("standardized", "95% CI")]
-indirect <- indirect %>% 
-  rename("indirect_beta" = standardized,
-         "indirect_ci" = `95% CI`)
-
-total <- med_estimates_2[5, c("standardized", "95% CI")]
-total <- total %>% 
-  rename("total_beta" = standardized,
-         "total_ci" = `95% CI`)
-
-Mediator <- c("WE")
-mediat <- as.data.frame(Mediator)
-
-
-mod_table <- cbind(variables, total, direct, mediat, indirect)
-
-
-
-# job resources -> work engagement -> opportunity -> transfer -------------
-
-mod1b <- '
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
 opport =~ opp37 + opp39 + opp312
 transfer =~ use1 + use3 + use5 + use7
+
 
  # a1 path
  eng ~ a1 * jres
@@ -729,163 +568,615 @@ transfer =~ use1 + use3 + use5 + use7
  # b2 path
  transfer ~ b2 * opport
  
-  # b3 path
- opport ~ b3 * eng
+ # d1 path
+ opport ~ d1 * eng
 
- 
+ # a3 path
+ motiv ~ a3 * jres
+
+ # b3 path
+ transfer ~ b3 * motiv
+
+ # d2 path
+ motiv ~ d2 * eng
+
   # c prime path 
  transfer ~ cp * jres
 
+
+
  # indirect and total effects
- a1b1 := a1 * b1
- a2b2 := a2 * b2
- a1b3b2 := a1 * b3 * b2
- total := cp + a1b1 + a2b2 + a1b3b2'
+ a1b1 := a1 * b1          #res -> we -> transfer
+ a2b2 := a2 * b2          #res -> opp -> transfer
+ a3b3 := a3 * b3          #res -> mot -> transfer
+ a1d1b2 := a1 * d1 * b2   #res -> we -> opp -> transfer
+ a1d2b3 := a1 * d2 * b3   #res -> we -> mot -> transfer
+ 
+ tot_ind := a1b1 + a2b2 + a3b3 + a1d1b2 + a1d2b3
+ total := cp + a1b1 + a2b2 + a3b3 + a1d1b2 + a1d2b3
 
-fsem1b <- sem(mod1b, data = work_data2, se = "bootstrap", bootstrap = 10000)
 
-med_estimates_full <- parameterestimates(fsem1b, boot.ci.type = "bca.simple", standardized = TRUE)
+ # f1 path
+ eng ~ f1 * jdem
 
-med_estimatesb <- med_estimates_full[c(22:27, 53:56),c("lhs", "op", "rhs", "label", "pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_nrb <- med_estimates_full[c(22:27, 53:56),c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txtb <- med_estimates_full[c(22:27, 53:56),c("lhs", "op", "rhs", "label")]
+ # f2 path
+ opport ~ f2 * jdem
+
+ # f3 path
+ motiv ~ f3 * jdem
+
+
+ # c prime path 
+ transfer ~ cpd * jdem
+
+
+ # indirect and total effects
+ dem_f1b1 := f1 * b1          #dem -> we -> transfer
+ dem_f2b2 := f2 * b2          #dem -> opp -> transfer
+ dem_f3b3 := f3 * b3          #dem -> mot -> transfer
+ dem_f1d1b2 := f1 * d1 * b2   #dem -> we -> opp -> transfer
+ dem_f1d2b3 := f1 * d2 * b3   #dem -> we -> mot -> transfer
+
+ dem_tot_ind := dem_f1b1 + dem_f2b2 + dem_f3b3 + dem_f1d1b2 + dem_f1d2b3
+ dem_total := cpd + dem_f1b1 + dem_f2b2 + dem_f3b3 + dem_f1d1b2 + dem_f1d2b3
+
+# correlations
+jres ~~ jdem
+opport ~~ motiv
+'
+
+
+fit_modXall <- sem(modXall, data = work_data2, se = "bootstrap", bootstrap = 5000)
+
+med_estimates_fullXall <- parameterestimates(fit_modXall, boot.ci.type = "bca.simple", standardized = TRUE)
+
+med_estimatesbx <- med_estimates_fullXall[c(30:42, 80:93),c("lhs", "op", "rhs", "label", "est", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_nrbx <- med_estimates_fullXall[c(30:42, 80:93),c("est", "pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txtbx <- med_estimates_fullXall[c(30:42, 80:93),c("lhs", "op", "rhs", "label")]
 
 # add significance stars from p values
-med_estimates_nrb$sign <- stars.pval(med_estimates_nrb$pvalue)
-med_estimates_signb <- med_estimates_nrb[1:10,"sign"]
-med_estimates_nrb <- med_estimates_nrb[1:10,1:4]
+med_estimates_nrbx$sign <- stars.pval(med_estimates_nrbx$pvalue)
+med_estimates_signbx <- med_estimates_nrbx[1:27,"sign"]
+med_estimates_nrbx <- med_estimates_nrbx[1:27,1:5]
 
 # change class to numeric
 # solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-med_estimates_nrb[] <- lapply(med_estimates_nrb, function(x) {
+med_estimates_nrbx[] <- lapply(med_estimates_nrbx, function(x) {
   if(is.character(x)) as.numeric(as.character(x)) else x
 })
-sapply(med_estimates_nrb, class)
+sapply(med_estimates_nrbx, class)
 
 # removing leading zeros in numbers
 # solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-med_estimates_nr2b <- data.frame(lapply(med_estimates_nrb, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+med_estimates_nr2bx <- data.frame(lapply(med_estimates_nrbx, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
 
 
 # bind columns that contain text, modified numeric values and significance stars 
-med_estimates_2b <- cbind(med_estimates_txtb, med_estimates_nr2b, med_estimates_signb)
+med_estimates_2bx <- cbind(med_estimates_txtbx, med_estimates_nr2bx, med_estimates_signbx)
 
-med_estimates_2b <- med_estimates_2b %>% 
-  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
-  unite("standardized", c(std.all, med_estimates_signb), sep = "", remove = TRUE)
+med_estimates_2bx <- med_estimates_2bx %>%
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>%
+  unite("standardized", c(std.all, med_estimates_signbx), sep = "", remove = TRUE)
 
-med_estimates_2b$`95% CI` <- med_estimates_2b$`95% CI` %>% 
+med_estimates_2bx$`95% CI` <- med_estimates_2bx$`95% CI` %>% 
   paste("[", ., "]")
 
 
 
-# mediator: work engagement
-variables0 <- "Job Resources -> Transfer (1)"
+# Job resources paths -----------------------------------------------------
+
+
+# total
+variables0 <- "Job Resources -> Transfer"
 variables <- as.data.frame(variables0) 
 
-direct <- med_estimates_2b[6, c("standardized", "95% CI")]
-direct <- direct %>% 
-  rename("direct_beta" = standardized,
-         "direct_ci" = `95% CI`)
+total_est <- med_estimates_2bx[20, 5]
+total_e <- as.data.frame(total_est)
 
-indirect <- med_estimates_2b[7, c("standardized", "95% CI")]
-indirect <- indirect %>% 
-  rename("indirect_beta" = standardized,
-         "indirect_ci" = `95% CI`)
-
-total <- med_estimates_2b[10, c("standardized", "95% CI")]
+total <- med_estimates_2bx[20, c("standardized", "95% CI")]
 total <- total %>% 
   rename("total_beta" = standardized,
          "total_ci" = `95% CI`)
 
-Mediator <- c("WE")
-mediat <- as.data.frame(Mediator)
+total_beta <- total[,1]
+total_confint <- total[,2]
 
-mod_tableb1 <- cbind(variables, total, direct, mediat, indirect)
 
+direct_est <- med_estimates_2bx[9, 5]
+direct_e <- as.data.frame(direct_est)
+
+direct <- med_estimates_2bx[9, c("standardized", "95% CI")]
+direct <- direct %>% 
+  rename("direct_beta" = standardized,
+         "direct_ci" = `95% CI`)
+
+direct_beta <- direct[,1]
+direct_confint <- direct[,2]
+
+
+indirect_est <- med_estimates_2bx[19, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[19, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+
+mod_table_jrfull0 <- cbind(variables, total_e, total_confint, total_beta, 
+                           direct_e, direct_confint, direct_beta,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+
+# job resources -> work engagement -> transfer path
+
+# mediator: work engagement
+
+variables0 <- "via WE"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[14, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[14, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jrfull1 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+# job resources -> opportunity -> transfer path
 
 # mediator: opportunity
 
-variables0 <- ""
+variables0 <- "via OTT"
 variables <- as.data.frame(variables0) 
 
-direct_beta <- ""
-direct_b <- as.data.frame(direct_beta) 
-direct_ci <- "" 
-direct_confi <- as.data.frame(direct_ci) 
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
 
-indirect <- med_estimates_2b[8, c("standardized", "95% CI")]
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[15, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[15, c("standardized", "95% CI")]
 indirect <- indirect %>% 
   rename("indirect_beta" = standardized,
          "indirect_ci" = `95% CI`)
 
-total_beta <- ""
-total_b <- as.data.frame(total_beta) 
-total_ci <- "" 
-total_confi <- as.data.frame(total_ci) 
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
 
-Mediator <- c("OTT")
-mediat <- as.data.frame(Mediator)
-
-
-mod_tableb2 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, mediat, indirect)
+mod_table_jrfull2 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
 
 
 
-# mediator: both we and opportunity
+# job resources -> motivation to transfer -> transfer path
 
-variables0 <- ""
+# mediator: motivation to transfer
+
+variables0 <- "via MTT"
 variables <- as.data.frame(variables0) 
 
-direct_beta <- ""
-direct_b <- as.data.frame(direct_beta) 
-direct_ci <- "" 
-direct_confi <- as.data.frame(direct_ci) 
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
 
-indirect <- med_estimates_2b[9, c("standardized", "95% CI")]
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[16, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[16, c("standardized", "95% CI")]
 indirect <- indirect %>% 
   rename("indirect_beta" = standardized,
          "indirect_ci" = `95% CI`)
 
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jrfull3 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+
+
+# job resources -> work engagement -> opportunity -> transfer path
+
+# mediator: both Work Engagement and Opportunity to Transfer
+
+variables0 <- "via WE -> OTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
 total_beta <- ""
-total_b <- as.data.frame(total_beta) 
-total_ci <- "" 
-total_confi <- as.data.frame(total_ci) 
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
 
-Mediator <- c("WE and OTT")
-mediat <- as.data.frame(Mediator)
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[17, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[17, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
 
 
-mod_tableb3 <- cbind(variables, total_b, total_confi, direct_b, direct_confi, mediat, indirect)
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jrfull4 <- cbind(variables, total_e, total_ci, total_bet, 
+                    direct_e, direct_ci, direct_bet,
+                    indirect_e, indirect_confint,indirect_beta)
+
+
+
+# job resources -> work engagement -> motivation -> transfer path
+
+# mediator: both Work Engagement and Motivation to Transfer
+
+variables0 <- "via WE -> MTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[18, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[18, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jrfull5 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+
+mod_table_jrfull <- rbind(mod_table_jrfull0, mod_table_jrfull1, mod_table_jrfull2, mod_table_jrfull3, 
+                          mod_table_jrfull4, mod_table_jrfull5)
+
+
+
+
+# Job demands paths -------------------------------------------------------
+
+# total
+variables0 <- "Job Demands -> Transfer"
+variables <- as.data.frame(variables0) 
+
+total_est <- med_estimates_2bx[27, 5]
+total_e <- as.data.frame(total_est)
+
+total <- med_estimates_2bx[27, c("standardized", "95% CI")]
+total <- total %>% 
+  rename("total_beta" = standardized,
+         "total_ci" = `95% CI`)
+total_beta <- total[,1]
+total_confint <- total[,2]
+
+
+direct_est <- med_estimates_2bx[13, 5]
+direct_e <- as.data.frame(direct_est)
+
+direct <- med_estimates_2bx[13, c("standardized", "95% CI")]
+direct <- direct %>% 
+  rename("direct_beta" = standardized,
+         "direct_ci" = `95% CI`)
+direct_beta <- direct[,1]
+direct_confint <- direct[,2]
+
+
+indirect_est <- med_estimates_2bx[26, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[26, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull0 <- cbind(variables, total_e, total_confint, total_beta, 
+                    direct_e, direct_confint, direct_beta,
+                    indirect_e, indirect_confint,indirect_beta)
+
+
+# job demands -> work engagement -> transfer path
+
+# mediator: work engagement
+
+variables0 <- "via WE"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[21, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[21, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull1 <- cbind(variables, total_e, total_ci, total_bet, 
+                    direct_e, direct_ci, direct_bet,
+                    indirect_e, indirect_confint,indirect_beta)
+
+
+
+
+# job demands -> opportunity -> transfer path
+
+# mediator: opportunity
+
+variables0 <- "via OTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[22, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[22, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull2 <- cbind(variables, total_e, total_ci, total_bet, 
+                    direct_e, direct_ci, direct_bet,
+                    indirect_e, indirect_confint,indirect_beta)
+
+
+
+# job demands -> motivation -> transfer path
+
+# mediator: motivation
+
+variables0 <- "via MTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[23, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[23, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull3 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+
+
+# job demands -> work engagement -> opportunity -> transfer path
+
+# mediator: both Work Engagement and Opportunity to Transfer
+
+variables0 <- "via WE -> OTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[24, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[24, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull4 <- cbind(variables, total_e, total_ci, total_bet, 
+                    direct_e, direct_ci, direct_bet,
+                    indirect_e, indirect_confint,indirect_beta)
+
+
+
+# job demands -> work engagement -> motivation -> transfer path
+
+# mediator: both Work Engagement and Motivation to Transfer
+
+variables0 <- "via WE -> MTT"
+variables <- as.data.frame(variables0) 
+
+total_est <- ""
+total_e <- as.data.frame(total_est)
+total_beta <- ""
+total_bet <- as.data.frame(total_beta) 
+total_confint <- "" 
+total_ci <- as.data.frame(total_confint) 
+
+direct_est <- ""
+direct_e <- as.data.frame(direct_est)
+direct_beta <- ""
+direct_bet <- as.data.frame(direct_beta) 
+direct_confint <- "" 
+direct_ci <- as.data.frame(direct_confint) 
+
+indirect_est <- med_estimates_2bx[25, 5]
+indirect_e <- as.data.frame(indirect_est)
+
+indirect <- med_estimates_2bx[25, c("standardized", "95% CI")]
+indirect <- indirect %>% 
+  rename("indirect_beta" = standardized,
+         "indirect_ci" = `95% CI`)
+indirect_beta <- indirect[,1]
+indirect_confint <- indirect[,2]
+
+mod_table_jdfull5 <- cbind(variables, total_e, total_ci, total_bet, 
+                           direct_e, direct_ci, direct_bet,
+                           indirect_e, indirect_confint,indirect_beta)
+
+
+
+
+mod_table_jdfull <- rbind(mod_table_jdfull0, mod_table_jdfull1, mod_table_jdfull2, mod_table_jdfull3, 
+                          mod_table_jdfull4, mod_table_jdfull5)
+
+
 
 
 # adding each mediation models to one table -------------------------------
 
-
-mod_tables <- rbind(mod_table, mod_tableb1, mod_tableb2, mod_tableb3, mod_table_jr_m_t)
+mod_tables <- rbind(mod_table_jrfull, mod_table_jdfull)
 
 # designing final mediation table
 designed_table_med <- mod_tables %>%
   flextable() %>%
   set_header_labels(
-    variables0 = "",
-    total_beta = "Total effect",
-    total_ci = "",
-    direct_beta = " Direct effect",
-    direct_ci = "",
-    Mediator = "Mediator",
-    indirect_beta = "Indirect effect",
-    indirect_ci = ""
+    variables0 = "Paths",
+    total_est = "Total effect",
+    total_confint = "",
+    total_beta = "",
+    direct_est = "Direct effect",
+    direct_confint = "",
+    direct_beta = "",
+    indirect_est = "Indirect effect",
+    indirect_confint = "",
+    indirect_beta = ""
   ) %>%
-  add_header_row(values = c("", "β", "95% CI", "β", "95% CI", "", "β", "95% CI"),
+  add_header_row(values = c("", "b", "95% CI", "β", "b", "95% CI", "β", "b", "95% CI", "β"),
                  top = FALSE) %>%
-  merge_at(i = 1, j = 2:3, part = "head") %>%
-  merge_at(i = 1, j = 4:5, part = "head") %>%
-  merge_at(i = 1, j = 7:8, part = "head") %>%
+  merge_at(i = 1, j = 2:4, part = "head") %>%
+  merge_at(i = 1, j = 5:7, part = "head") %>%
+  merge_at(i = 1, j = 8:10, part = "head") %>%
   hline(i = 2, part = "head", border = officer::fp_border(width = 2)) %>%
   hline(i = 1, part = "head", border = officer::fp_border("white")) %>%
-  hline(i = 1, part = "body", border = officer::fp_border()) %>%
-  hline(i = 4, part = "body", border = officer::fp_border()) %>%
+  hline(i = 6, part = "body", border = officer::fp_border()) %>%
   fontsize(size = 11, part = "all") %>%
   font(fontname = "Times New Roman", part = "all") %>%
   align(align = "left", part = "all") %>%
@@ -900,8 +1191,8 @@ designed_table_med <- mod_tables %>%
   )
 
 # saving final table to word file
-save_as_docx("Table 3. Mediation analysis including total, direct, and indirect effects" = designed_table_med, 
-             path = "Table 3 - Mediation analysis table.docx")
+save_as_docx("Table 3. Standardized estimates of total, direct, and indirect effects with 95% bias-corrected bootstrapped confidence intervals" = designed_table_med, 
+             path = "Table 3 extra modified 7 - Mediation analysis table.docx")
 
 
 
