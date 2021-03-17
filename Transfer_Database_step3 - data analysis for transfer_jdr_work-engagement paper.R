@@ -22,6 +22,23 @@ work_data2 <- work_data %>%
   filter(timediff >= 13 & timediff <= 120) %>%
   filter(T_length_1 != "NA")
 
+## ---------------------------------------------------- Demographics -----------------------------------------------------
+
+work_data2 %>% 
+  summarise(min(age),
+            max(age),
+            mean(age),
+            sd(age))
+
+work_data2 %>% 
+  group_by(Gender) %>%
+  summarise(N = n(),
+            Percent = n()/311*100)
+
+work_data2 %>% 
+  group_by(Management) %>%
+  summarise(N = n(),
+            Percent = n()/311*100)
 
 
 ## ---------------------------------------------------- 1. Preliminary analyses -----------------------------------------------------
@@ -36,8 +53,11 @@ work_data2 <- work_data %>%
 # summary(fit_resources_orig, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
 # # factor loading of jdr9 did not reach 0.3 so it will be removed from the further phases of the analysis
 
+# ----------------
+
+# calculating Cronbach alpha for Job resources
 resources_factor <- '
-res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11'
+res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11' 
 
 fit_resources <- cfa(resources_factor, data = work_data2, estimator = 'MLR')
 resources_rel <- as.data.frame(reliability(fit_resources))
@@ -84,7 +104,142 @@ transfer_rel <- as.data.frame(reliability(fit_transf))
 
 
 reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
-reliabilities2 <- round(reliabilities[1:2,], 3)
+reliabilities2 <- round(reliabilities[1,], 3)
+
+
+# ----------------
+
+# calculating composite reliability, McDonald's omega
+
+# transfer model 1 reliability check
+transfer_corr_model_rel <- '
+# regressions
+jres =~ j1*jdr1 + j3*jdr3 + j5*jdr5 + j7*jdr7 + j11*jdr11
+
+# Error Variance
+jdr1~~ej1*jdr1
+jdr3~~ej3*jdr3
+jdr5~~ej5*jdr5
+jdr7~~ej7*jdr7
+jdr11~~ej11*jdr11
+
+#Reliability
+omega.jr := 
+((j1 + j3 + j5 + j7 + j11)^2) 
+/ 
+((j1 + j3 + j5 + j7 + j11)^2 + 
+(ej1+ej3+ej5+ej7+ej11))
+
+
+jdem =~ j2*jdr2 + j4*jdr4 + j6*jdr6 + j8*jdr8 + j10*jdr10
+
+# Error Variance
+jdr2~~ej2*jdr2
+jdr4~~ej4*jdr4
+jdr6~~ej6*jdr6
+jdr8~~ej8*jdr8
+jdr10~~ej10*jdr10
+
+#Reliability
+omega.jd := 
+((j2 + j4 + j6 + j8 + j10)^2) 
+/ 
+((j2 + j4 + j6 + j8 + j10)^2 + 
+(ej2+ej4+ej6+ej8+ej10))
+
+
+eng =~ u1*uwes1 + u2*uwes2 + u3*uwes3 + u4*uwes4 + u5*uwes5 + u6*uwes6 + u7*uwes7 + u8*uwes8 + u9*uwes9
+
+# Error Variance
+uwes1~~eu1*uwes1
+uwes2~~eu2*uwes2
+uwes3~~eu3*uwes3
+uwes4~~eu4*uwes4
+uwes5~~eu5*uwes5
+uwes6~~eu6*uwes6
+uwes7~~eu7*uwes7
+uwes8~~eu8*uwes8
+uwes9~~eu9*uwes9
+
+#Reliability
+omega.u := 
+((u1 + u2 + u3 + u4 + u5 + u6 + u7 + u8 + u9)^2) 
+/ 
+((u1 + u2 + u3 + u4 + u5 + u6 + u7 + u8 + u9)^2 + 
+(eu1 + eu2 + eu3 + eu4 + eu5 + eu6 + eu7 + eu8 + eu9))
+
+
+opport =~ o1*opp37 + o2*opp39 + o3*opp312
+
+# Error Variance
+opp37~~eo1*opp37
+opp39~~eo2*opp39
+opp312~~eo3*opp312
+
+#Reliability
+omega.o := 
+((o1 + o2 + o3)^2) 
+/ 
+((o1 + o2 + o3)^2 + 
+(eo1 + eo2 + eo3))
+
+
+motiv =~ m1*mot26 + m2*mot28 + m3*mot212
+
+# Error Variance
+mot26~~em1*mot26
+mot28~~em2*mot28
+mot212~~em3*mot212
+
+#Reliability
+omega.m := 
+((m1 + m2 + m3)^2) 
+/ 
+((m1 + m2 + m3)^2 + 
+(em1 + em2 + em3))
+
+
+transfer =~ t1*use1 + t2*use3 + t3*use5 + t4*use7
+
+# Error Variance
+use1~~et1*use1
+use3~~et2*use3
+use5~~et3*use5
+use7~~et4*use7
+
+
+#Reliability
+omega.t := 
+((t1 + t2 + t3 + t4)^2) 
+/ 
+((t1 + t2 + t3 + t4)^2 + 
+(et1 + et2 + et3 + et4))
+
+# correlations
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ jres
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+transfer ~~ eng
+
+opport ~~ motiv
+opport ~~ transfer
+
+motiv ~~ transfer
+'
+
+fit_transfer <- sem(transfer_corr_model_rel, data = work_data2, estimator = 'MLR', std.lv = TRUE)
+summary(fit_transfer, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+
+
+
 
 
 ## ---------------------------------------- 1.2. CORRELATION of MEASURED variables ------------------------------------
