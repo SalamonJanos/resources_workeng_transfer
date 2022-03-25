@@ -3,7 +3,8 @@
 library(haven)
 library(tidyverse)
 library(lavaan) # for calculating Cronbach alpha
-library(semTools)  # for calculating Cronbach alpha
+#library(semTools)  # for calculating Cronbach alpha
+library(psych) # for EFA
 library(semPlot)  # for making SEM path models
 library(flextable) # for making regression table and descriptive table publication ready
 library(gtools) # for adding significance stars e.g., to standardized parameter estimates
@@ -45,7 +46,10 @@ work_data2 %>%
 
 ## -------------------------- 1.1. Internal consistency (alpha and omega) calculation ---------------------------
 
-# calculating Cronbach alpha for Job resources
+
+# 1.1.1. Calculating  Cronbach alpha --------------------------------------
+
+# Calculating Cronbach alpha for Job resources
 
 # resources_factor_original <- '
 # res_factor_orig =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr9 + jdr11'
@@ -53,7 +57,6 @@ work_data2 %>%
 # summary(fit_resources_orig, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
 # # factor loading of jdr9 did not reach 0.3 so it will be removed from the further phases of the analysis
 
-# ----------------
 
 # calculating Cronbach alpha for Job resources
 resources_factor <- '
@@ -107,7 +110,7 @@ reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_re
 reliabilities2 <- round(reliabilities[1,], 3)
 
 
-# ----------------
+# 1.1.2. Calculating composite reliability, McDonald's omega ---------------------
 
 # calculating composite reliability, McDonald's omega
 
@@ -238,9 +241,155 @@ motiv ~~ transfer
 fit_transfer <- sem(transfer_corr_model_rel, data = work_data2, estimator = 'MLR', std.lv = TRUE)
 summary(fit_transfer, fit.measures = TRUE, standardized = TRUE, rsquare=T)
 
+# Fit indices
+round(fitMeasures(fit_transfer)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
+                                  "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
 
 
 
+# 1.1.3. Assessing the extent to which Common Method Variance may be a problem -------------
+
+# 1.1.3.1. Harman's single factor model (EFA)
+one_fact <- work_data2 %>%
+  as_tibble() %>%
+  select(jdr1, jdr3, jdr5, jdr7, jdr11, 
+           jdr2, jdr4, jdr6, jdr8, jdr10,
+           uwes1, uwes2, uwes3, uwes4, uwes5, uwes6, uwes7, uwes8, uwes9,
+           opp37, opp39, opp312,
+           mot26, mot28, mot212, 
+           use1, use3, use5, use7)
+
+onef_correl <- mixedCor(one_fact, c=NULL, p=1:29)
+str(onef_correl)
+onef_polychoric <- onef_correl$rho
+
+library(polycor)
+cortest.bartlett(onef_polychoric, n = 311)
+KMO(onef_polychoric)
+# Both the p.value attribute of cortest.bartlett()’s output is very much lower than 0.05 and 
+# the MSA attribute of KMO()’s output, 0.91, is close to 1, 
+# which means that they both recommend that EFA.
+
+# Scree test and the Kaiser-Guttman criterion
+scree(onef_polychoric)
+
+# Parallel analysis for estimation with the minres extraction method
+fa.parallel(onef_polychoric, n.obs = 311, fm = "minres", fa = "fa")
+## -> Parallel analysis suggests that the number of factors =  4
+
+# Parallel analysis for estimation with the mle extraction method
+fa.parallel(onef_polychoric, n.obs = 311, fm = "mle", fa = "fa")
+## -> Parallel analysis suggests that the number of factors =  5
+
+fa(onef_polychoric, nfactors = 1, fm = "mle")
+# Proportion Var: 0.28 (the overall variance the factor accounts for out of all the variables)
+
+
+# 1.1.3.2. Harman's single factor model (CFA)
+Harman_model <- '
+# regressions
+single =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11 + 
+  jdr2 + jdr4 + jdr6 + jdr8 + jdr10 +
+  uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9 +
+  opp37 + opp39 + opp312 +
+  mot26 + mot28 + mot212 + 
+  use1 + use3 + use5 + use7
+'
+
+fit_single <- sem(Harman_model, data = work_data2, estimator = 'MLR', std.lv = TRUE)
+summary(fit_single, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+
+# Fit indices
+round(fitMeasures(fit_single)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
+                                  "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
+
+
+# 1.1.3.3. The unmeasured latent method factor model 
+ULMF_model <- '
+# regressions
+jres =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+
+transfer =~ use1 + use3 + use5 + use7
+
+# correlations
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ jres
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+transfer ~~ eng
+
+opport ~~ motiv
+opport ~~ transfer
+
+motiv ~~ transfer
+
+# latent common methods variance factor
+method =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11 + 
+  jdr2 + jdr4 + jdr6 + jdr8 + jdr10 +
+  uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9 +
+  opp37 + opp39 + opp312 +
+  mot26 + mot28 + mot212 + 
+  use1 + use3 + use5 + use7
+
+'
+
+fit_ulmf <- sem(ULMF_model, data = work_data2, estimator = 'MLR', std.lv = TRUE)
+summary(fit_ulmf, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+
+# Fit indices
+round(fitMeasures(fit_ulmf)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
+                                  "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
+
+normal_model <- '
+# regressions
+jres =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+
+transfer =~ use1 + use3 + use5 + use7
+
+# correlations
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ jres
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+transfer ~~ eng
+
+opport ~~ motiv
+opport ~~ transfer
+
+motiv ~~ transfer
+
+'
+
+fit_normal <- sem(normal_model, data = work_data2, estimator = 'MLR', std.lv = TRUE)
+summary(fit_normal, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+
+# Fit indices
+round(fitMeasures(fit_normal)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
+                              "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
 
 ## ---------------------------------------- 1.2. CORRELATION of MEASURED variables ------------------------------------
 
@@ -596,7 +745,6 @@ opport ~ eng + jres + jdem
 motiv ~ eng + jres + jdem
 
 eng ~ jres + jdem
-
 
 
 # correlations
