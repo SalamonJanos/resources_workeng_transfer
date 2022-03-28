@@ -473,180 +473,7 @@ save_as_docx("Table -. Descriptive statistics and Spearman bivariate correlation
 
 ## ---------------------------------------- 1.3. CORRELATION of LATENT factors ------------------------------------
 
-
-# 1.3.1. correlation model --------------------------------
-
-# transfer model 1 
-transfer_corr_model <- '
-# regressions
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-
-opport =~ opp37 + opp39 + opp312
-motiv =~ mot26 + mot28 + mot212
-transfer =~ use1 + use3 + use5 + use7
-
-# correlations
-jres ~~ eng
-jres ~~ opport
-jres ~~ motiv
-jres ~~ transfer
-jdem ~~ jres
-jdem ~~ eng
-jdem ~~ opport
-jdem ~~ motiv
-jdem ~~ transfer
-eng ~~ opport
-eng ~~ motiv
-transfer ~~ eng
-
-opport ~~ motiv
-opport ~~ transfer
-
-motiv ~~ transfer
-'
-
-
-fit_transf_corr <- sem(transfer_corr_model, data = work_data2, estimator = 'MLR')
-sem_corr <- summary(fit_transf_corr, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
-fit_corr <- round(fitMeasures(fit_transf_corr)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                                      "srmr", "aic", "bic")], 3)
-
-# 1.3.2. creating dataframe for Table 1. (corr between latent vars) --------------
-
-corr_estimates <- sem_corr$PE[30:44,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
-corr_estimates_nr <- sem_corr$PE[30:44,c("pvalue", "ci.lower", "ci.upper", "std.all")]
-med_estimates_txt <- sem_corr$PE[30:44,c("lhs", "op", "rhs")]
-
-
-# add significance stars from p values
-corr_estimates_nr$sign <- stars.pval(corr_estimates_nr$pvalue)
-corr_estimates_sign_nr <- corr_estimates_nr[1:15,"sign"]
-corr_estimates_nr <- corr_estimates_nr[1:15,1:4]
-
-# change class to numeric
-# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
-corr_estimates_nr[] <- lapply(corr_estimates_nr, function(x) {
-  if(is.character(x)) as.numeric(as.character(x)) else x
-})
-sapply(corr_estimates_nr, class)
-
-# removing leading zeros in numbers
-# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
-corr_estimates_nr2 <- data.frame(lapply(corr_estimates_nr, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
-
-
-# bind columns that contain text, modified numeric values and significance stars 
-corr_estimates2 <- cbind(med_estimates_txt, corr_estimates_nr2, corr_estimates_sign_nr)
-
-corr_estimates2 <- corr_estimates2 %>% 
-  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
-  unite("standardized", c(std.all, corr_estimates_sign_nr), sep = "", remove = TRUE)
-
-corr_estimates2$`95% CI` <- corr_estimates2$`95% CI` %>%
-  paste("[", ., "]")
-
-corr_estimates3 <- corr_estimates2[1:15,c(1,3,6)]
-
-# library(reshape2) used here for creating matrix from data frame columns
-latent_corr <- acast(corr_estimates3, lhs~rhs, value.var="standardized")
-
-latent_corr[1, 2] <- latent_corr[2, 1]
-latent_corr[4, 1] <- latent_corr[1, 3]
-latent_corr[5, 1] <- latent_corr[1, 4]
-latent_corr[4, 2] <- latent_corr[2, 3]
-latent_corr[5, 2] <- latent_corr[2, 4]
-latent_corr[4, 4] <- latent_corr[5, 3]
-
-
-latent_corr1 <- latent_corr[1:5, 1:2]
-latent_corr2 <- latent_corr[1:5, 3:5]
-
-
-transf <- as.matrix(t(latent_corr[,5]))
-rownames(transf) <- c("transfer")
-transf_col <- as.matrix(NA)
-colnames(transf_col) <- c("transfer")
-rownames(transf_col) <- c("transfer")
-transf <- cbind(transf, transf_col)
-
-
-
-
-jres <- as.matrix(latent_corr[3,])
-colnames(jres) <- c("jres")
-
-jres1 <- as.matrix(jres[1:2, 1])
-jres2 <- as.matrix(jres[3:4, 1])
-
-jres_row <- as.matrix(NA)
-rownames(jres_row) <- c("jres")
-jres_new <- rbind(jres1, jres_row, jres2)
-colnames(jres_new) <- c("jres")
-
-latent_corr_tab <- cbind(latent_corr1, jres_new, latent_corr2)
-
-latent_corr_tab2 <- rbind(latent_corr_tab, transf)
-
-
-col.order <- c("jres","jdem","eng","motiv","opport", "transfer")
-row.order <- c("jres","jdem","eng","motiv","opport", "transfer")
-latent_corr_tab3 <- latent_corr_tab2[row.order,col.order]
-latent_corr_tab4 <- as.data.frame(latent_corr_tab3)
-
-latent_corr_tab4[upper.tri(latent_corr_tab4)] <- NA
-
-
-
-
-row.names(latent_corr_tab4) <- c("1. Job Resources", "2. Job Demands", "3. Work Engagement", 
-                                "4. Motivation to Transfer", "5. Opportunity to Transfer",
-                                "6. Training Transfer– Use")
-
-# setting row names to first column
-latent_corr_tab4 <- tibble::rownames_to_column(latent_corr_tab4, " ")
-
-# removing last (empty) column
-latent_corr_tab4[,7] <- NULL
-
-# renaming column names
-latent_corr_tab4 <- latent_corr_tab4 %>%  
-  rename(
-    "1" = jres,
-    "2" = jdem,
-    "3" = eng,
-    "4" = motiv,
-    "5" = opport)
-
-
-# Table 1. Bivariate correlations between LATENT variables ----------------
-
-# designing final correlation table
-designed_corr_table <- latent_corr_tab4 %>% 
-  flextable() %>% 
-  # hline(i = 6, part = "body", border = officer::fp_border()) %>% 
-  fontsize(size = 10, part = "all") %>%
-  font(fontname = "Times New Roman", part = "all") %>%
-  align(align = "left", part = "all") %>% 
-  # width(width = 0.59) %>% 
-  autofit() %>% 
-  #  set_table_properties(width = 1) %>% 
-  add_footer_lines(c("Note. N = 311.", 
-                     "* p < .05, ** p < .01, *** p < .001"))
-
-# saving final table to word file
-save_as_docx("Table 1. Bivariate correlations between latent variables" = designed_corr_table, 
-             path = "Table 1 - JDR, WE, Transfer correlation table of latent variables.docx")
-
-
-
-# 1.3.3. correlation model - with time lag --------------------------------
-
-
+# 1.3.1. correlation model - with time lag --------------------------------
 
 # transfer corr model 2 
 transfer_corr_model2 <- '
@@ -697,7 +524,7 @@ fit_corr2 <- round(fitMeasures(fit_transf_corr2)[c("chisq.scaled", "df.scaled", 
                                                  "srmr", "aic", "bic")], 3)
 
 
-# # 1.3.4. creating dataframe for Table 1. (corr between latent vars + time lag) --------
+# # 1.3.2. creating dataframe for Table 1. (corr between latent vars + time lag) --------
 
 
 corr_estimates <- sem_corr2$PE[30:50,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
@@ -760,36 +587,6 @@ tdiff_col <- as.matrix(NA)
 colnames(tdiff_col) <- c("cent_timediff")
 rownames(tdiff_col) <- c("cent_timediff")
 tdiff <- cbind(tdiff_col, tdiff)
-
-
-
-# 
-# 
-# rownames(tdiff) <- c("cent_timediff")
-# tdiff_col <- as.matrix(NA)
-# colnames(tdiff_col) <- c("cent_timediff")
-# rownames(tdiff_col) <- c("cent_timediff")
-# tdiff <- cbind(tdiff_col, tdiff)
-# 
-# tdiff1 <- tdiff[1, 1:3]
-# tdiff_col <- as.matrix(NA)
-# rownames(tdiff_col) <- c("cent_timediff")
-# tdiff1 <- cbind(tdiff1, tdiff_col)
-# 
-# tdiff2 <- tdiff[1, 5:7]
-# rownames(tdiff2) <- c("cent_timediff")
-# # transf <- cbind(transf, transf_col)
-# 
-# tdiff3 <- cbind(tdiff1, tdiff2)
-# 
-# latent_corr_tab2 <- rbind(tdiff3, latent_corr)
-
-# transf <- as.matrix(t(latent_corr[,6]))
-# rownames(transf) <- c("transfer")
-# transf_col <- as.matrix(NA)
-# colnames(transf_col) <- c("transfer")
-# rownames(transf_col) <- c("transfer")
-# transf <- cbind(transf, transf_col)
 
 
 jres <- as.matrix(latent_corr[3,])
