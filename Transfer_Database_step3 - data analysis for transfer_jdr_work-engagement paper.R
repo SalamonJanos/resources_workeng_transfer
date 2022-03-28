@@ -23,7 +23,18 @@ work_data2 <- work_data %>%
   filter(timediff >= 13 & timediff <= 120) %>%
   filter(T_length_1 != "NA")
 
+work_data2$cent_timediff <- work_data2$timediff %>% 
+  scale(center = TRUE) %>% 
+  as.numeric()
+
+
 ## ---------------------------------------------------- Demographics -----------------------------------------------------
+
+work_data2 %>% 
+  summarise(min(timediff),
+            max(timediff),
+            mean(timediff),
+            sd(timediff))
 
 work_data2 %>% 
   summarise(min(age),
@@ -236,6 +247,7 @@ opport ~~ motiv
 opport ~~ transfer
 
 motiv ~~ transfer
+
 '
 
 fit_transfer <- sem(transfer_corr_model_rel, data = work_data2, estimator = 'MLR', std.lv = TRUE)
@@ -304,99 +316,13 @@ round(fitMeasures(fit_single)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled"
                                   "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
 
 
-# 1.1.3.3. The unmeasured latent method factor model 
-ULMF_model <- '
-# regressions
-jres =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-
-opport =~ opp37 + opp39 + opp312
-motiv =~ mot26 + mot28 + mot212
-
-transfer =~ use1 + use3 + use5 + use7
-
-# correlations
-jres ~~ eng
-jres ~~ opport
-jres ~~ motiv
-jres ~~ transfer
-jdem ~~ jres
-jdem ~~ eng
-jdem ~~ opport
-jdem ~~ motiv
-jdem ~~ transfer
-eng ~~ opport
-eng ~~ motiv
-transfer ~~ eng
-
-opport ~~ motiv
-opport ~~ transfer
-
-motiv ~~ transfer
-
-# latent common methods variance factor
-method =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11 + 
-  jdr2 + jdr4 + jdr6 + jdr8 + jdr10 +
-  uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9 +
-  opp37 + opp39 + opp312 +
-  mot26 + mot28 + mot212 + 
-  use1 + use3 + use5 + use7
-
-'
-
-fit_ulmf <- sem(ULMF_model, data = work_data2, estimator = 'MLR', std.lv = TRUE)
-summary(fit_ulmf, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-
-# Fit indices
-round(fitMeasures(fit_ulmf)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
-                                  "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
-
-normal_model <- '
-# regressions
-jres =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-
-opport =~ opp37 + opp39 + opp312
-motiv =~ mot26 + mot28 + mot212
-
-transfer =~ use1 + use3 + use5 + use7
-
-# correlations
-jres ~~ eng
-jres ~~ opport
-jres ~~ motiv
-jres ~~ transfer
-jdem ~~ jres
-jdem ~~ eng
-jdem ~~ opport
-jdem ~~ motiv
-jdem ~~ transfer
-eng ~~ opport
-eng ~~ motiv
-transfer ~~ eng
-
-opport ~~ motiv
-opport ~~ transfer
-
-motiv ~~ transfer
-
-'
-
-fit_normal <- sem(normal_model, data = work_data2, estimator = 'MLR', std.lv = TRUE)
-summary(fit_normal, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-
-# Fit indices
-round(fitMeasures(fit_normal)[c("chisq.scaled", "df", "cfi.scaled", "tli.scaled",
-                              "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr", "aic", "bic")], 3)
-
 ## ---------------------------------------- 1.2. CORRELATION of MEASURED variables ------------------------------------
 
 
 # 1.2.1. preparation for correlation table --------------------------------
 
 # check variables normality
+shapiro.test(work_data2$timediff)
 shapiro.test(work_data2$job_resources)
 shapiro.test(work_data2$job_demands)
 shapiro.test(work_data2$uwes_all)
@@ -406,7 +332,7 @@ shapiro.test(work_data2$use)
 
 # significant Shapiro-Wilk normality tests --> Spearman correlations are necessary
 
-corr_input <- c("job_resources", "job_demands", "uwes_all", "opportunity", "motivation", "use")
+corr_input <- c("timediff", "job_resources", "job_demands", "uwes_all", "opportunity", "motivation", "use")
 
 corr_table <- work_data2 %>% 
   select(., one_of(corr_input))
@@ -718,6 +644,224 @@ save_as_docx("Table 1. Bivariate correlations between latent variables" = design
 
 
 
+# 1.3.3. correlation model - with time lag --------------------------------
+
+
+
+# transfer corr model 2 
+transfer_corr_model2 <- '
+# regressions
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+
+eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+transfer =~ use1 + use3 + use5 + use7
+
+# correlations
+jres ~~ eng
+jres ~~ opport
+jres ~~ motiv
+jres ~~ transfer
+jdem ~~ jres
+jdem ~~ eng
+jdem ~~ opport
+jdem ~~ motiv
+jdem ~~ transfer
+eng ~~ opport
+eng ~~ motiv
+transfer ~~ eng
+
+opport ~~ motiv
+opport ~~ transfer
+
+motiv ~~ transfer
+
+cent_timediff ~~ jres
+cent_timediff ~~ jdem
+cent_timediff ~~ eng
+cent_timediff ~~ opport
+cent_timediff ~~ motiv
+cent_timediff ~~ transfer
+
+'
+
+
+fit_transf_corr2 <- sem(transfer_corr_model2, data = work_data2, estimator = 'MLR')
+sem_corr2 <- summary(fit_transf_corr2, fit.measures = TRUE, standardized = TRUE, rsquare=T, ci = TRUE)
+fit_corr2 <- round(fitMeasures(fit_transf_corr2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                 "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                 "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                 "srmr", "aic", "bic")], 3)
+
+
+# # 1.3.4. creating dataframe for Table 1. (corr between latent vars + time lag) --------
+
+
+corr_estimates <- sem_corr2$PE[30:50,c("lhs", "op", "rhs", "pvalue", "ci.lower", "ci.upper", "std.all")]
+corr_estimates_nr <- sem_corr2$PE[30:50,c("pvalue", "ci.lower", "ci.upper", "std.all")]
+med_estimates_txt <- sem_corr2$PE[30:50,c("lhs", "op", "rhs")]
+
+
+# add significance stars from p values
+corr_estimates_nr$sign <- stars.pval(corr_estimates_nr$pvalue)
+corr_estimates_sign_nr <- corr_estimates_nr[1:21,"sign"]
+corr_estimates_nr <- corr_estimates_nr[1:21,1:4]
+
+# change class to numeric
+# solution was found here: https://stackoverflow.com/questions/26391921/how-to-convert-entire-dataframe-to-numeric-while-preserving-decimals
+corr_estimates_nr[] <- lapply(corr_estimates_nr, function(x) {
+  if(is.character(x)) as.numeric(as.character(x)) else x
+})
+sapply(corr_estimates_nr, class)
+
+# removing leading zeros in numbers
+# solution was found here: https://stackoverflow.com/questions/53740145/remove-leading-zeros-in-numbers-within-a-data-frame
+corr_estimates_nr2 <- data.frame(lapply(corr_estimates_nr, function(x) gsub("^0\\.", "\\.", gsub("^-0\\.", "-\\.", sprintf("%.3f", x)))), stringsAsFactors = FALSE)
+
+
+# bind columns that contain text, modified numeric values and significance stars 
+corr_estimates2 <- cbind(med_estimates_txt, corr_estimates_nr2, corr_estimates_sign_nr)
+
+corr_estimates2 <- corr_estimates2 %>% 
+  unite("95% CI", c(ci.lower, ci.upper), sep = ", ", remove = TRUE) %>% 
+  unite("standardized", c(std.all, corr_estimates_sign_nr), sep = "", remove = TRUE)
+
+corr_estimates2$`95% CI` <- corr_estimates2$`95% CI` %>%
+  paste("[", ., "]")
+
+corr_estimates3 <- corr_estimates2[1:21,c(1,3,6)]
+
+# library(reshape2) used here for creating matrix from data frame columns
+latent_corr <- acast(corr_estimates3, lhs~rhs, value.var="standardized")
+
+latent_corr[4, 2] <- latent_corr[1, 4]
+latent_corr[5, 2] <- latent_corr[1, 5]
+latent_corr[6, 2] <- latent_corr[1, 6]
+
+latent_corr[1, 3] <- latent_corr[2, 2]
+latent_corr[4, 3] <- latent_corr[2, 4]
+latent_corr[5, 3] <- latent_corr[2, 5]
+latent_corr[6, 3] <- latent_corr[2, 6]
+
+latent_corr[6, 4] <- latent_corr[4, 6]
+latent_corr[4, 5] <- latent_corr[5, 4]
+latent_corr[6, 5] <- latent_corr[5, 6]
+
+
+latent_corr1 <- latent_corr[1:6, 1:3]
+latent_corr2 <- latent_corr[1:6, 4:6]
+
+
+tdiff <- as.matrix(t(latent_corr[,1]))
+tdiff_col <- as.matrix(NA)
+colnames(tdiff_col) <- c("cent_timediff")
+rownames(tdiff_col) <- c("cent_timediff")
+tdiff <- cbind(tdiff_col, tdiff)
+
+
+
+# 
+# 
+# rownames(tdiff) <- c("cent_timediff")
+# tdiff_col <- as.matrix(NA)
+# colnames(tdiff_col) <- c("cent_timediff")
+# rownames(tdiff_col) <- c("cent_timediff")
+# tdiff <- cbind(tdiff_col, tdiff)
+# 
+# tdiff1 <- tdiff[1, 1:3]
+# tdiff_col <- as.matrix(NA)
+# rownames(tdiff_col) <- c("cent_timediff")
+# tdiff1 <- cbind(tdiff1, tdiff_col)
+# 
+# tdiff2 <- tdiff[1, 5:7]
+# rownames(tdiff2) <- c("cent_timediff")
+# # transf <- cbind(transf, transf_col)
+# 
+# tdiff3 <- cbind(tdiff1, tdiff2)
+# 
+# latent_corr_tab2 <- rbind(tdiff3, latent_corr)
+
+# transf <- as.matrix(t(latent_corr[,6]))
+# rownames(transf) <- c("transfer")
+# transf_col <- as.matrix(NA)
+# colnames(transf_col) <- c("transfer")
+# rownames(transf_col) <- c("transfer")
+# transf <- cbind(transf, transf_col)
+
+
+jres <- as.matrix(latent_corr[3,])
+colnames(jres) <- c("jres")
+
+jres1 <- as.matrix(jres[1:3, 1])
+jres2 <- as.matrix(jres[4:6, 1])
+
+jres_row <- as.matrix(NA)
+rownames(jres_row) <- c("jres")
+jres_new <- rbind(jres1, jres_row, jres2)
+colnames(jres_new) <- c("jres")
+
+jres_new <- jres_new[2:7,]
+
+latent_corr_tab <- cbind(latent_corr1, jres_new, latent_corr2)
+
+latent_corr_tab2 <- rbind(tdiff, latent_corr_tab)
+
+
+
+
+col.order <- c("cent_timediff", "jres","jdem","eng","motiv","opport", "transfer")
+row.order <- c("cent_timediff", "jres","jdem","eng","motiv","opport", "transfer")
+latent_corr_tab3 <- latent_corr_tab2[row.order,col.order]
+latent_corr_tab4 <- as.data.frame(latent_corr_tab3)
+
+latent_corr_tab4[upper.tri(latent_corr_tab4)] <- NA
+
+
+
+
+row.names(latent_corr_tab4) <- c("1. Time Lag", "2. Job Resources", "3. Job Demands", "4. Work Engagement", 
+                                 "5. Motivation to Transfer", "6. Opportunity to Transfer",
+                                 "7. Training Transfer")
+
+# setting row names to first column
+latent_corr_tab4 <- tibble::rownames_to_column(latent_corr_tab4, " ")
+
+# removing last (empty) column
+latent_corr_tab4[,8] <- NULL
+
+# renaming column names
+latent_corr_tab4 <- latent_corr_tab4 %>%  
+  rename(
+    "1" = cent_timediff,
+    "2" = jres,
+    "3" = jdem,
+    "4" = eng,
+    "5" = motiv,
+    "6" = opport)
+
+
+# Table 1. Bivariate correlations between LATENT variables ----------------
+
+# designing final correlation table
+designed_corr_table <- latent_corr_tab4 %>% 
+  flextable() %>% 
+  # hline(i = 6, part = "body", border = officer::fp_border()) %>% 
+  fontsize(size = 10, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>% 
+  # width(width = 0.59) %>% 
+  autofit() %>% 
+  #  set_table_properties(width = 1) %>% 
+  add_footer_lines(c("Note. N = 311.", 
+                     "* p < .05, ** p < .01, *** p < .001"))
+
+# saving final table to word file
+save_as_docx("Table 1. Bivariate correlations between latent variables" = designed_corr_table, 
+             path = "Table 1 - JDR, WE, Transfer correlation table of latent variables.docx")
+
 
 ## ----------------------------------------------- MAIN ANALYSIS ------------------------------------------
 
@@ -768,6 +912,62 @@ lavInspect(fit_transfer, "rsquare")
 
 beta_values <- standardizedSolution(fit_transfer)
 beta_values[30:44,]
+
+
+# predictive model with control variable --------------------------------------------------------
+
+# transfer model 
+transfer_model2 <- '
+# regressions
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+
+eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+
+opport =~ opp37 + opp39 + opp312
+motiv =~ mot26 + mot28 + mot212
+transfer =~ use1 + use3 + use5 + use7
+
+
+# paths
+transfer ~ opport + motiv + eng + jres + jdem + cent_timediff
+
+opport ~ eng + jres + jdem + cent_timediff
+
+motiv ~ eng + jres + jdem + cent_timediff
+
+eng ~ jres + jdem + cent_timediff
+
+
+# correlations
+jres ~~ jdem
+opport ~~ motiv
+'
+
+
+fit_transfer2 <- sem(transfer_model2, data = work_data2, estimator = 'MLR')
+summary(fit_transfer2, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+fit_transfer_t1_2 <- round(fitMeasures(fit_transfer2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                     "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                     "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                     "srmr", "aic", "bic")], 3)
+
+fit_configural <- sem(transfer_model2, data = work_data2, estimator = 'MLR', group = "Company")
+summary(fit_configural, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+fit_configural_t1_2 <- round(fitMeasures(transfer_model2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                        "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                        "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                        "srmr", "aic", "bic")], 3)
+
+
+lavInspect(fit_transfer2, "rsquare")
+# transfer r2 = .684
+# eng r2 = .294
+# motiv r2 = .103
+# opport r2 = .137
+
+beta_values2 <- standardizedSolution(fit_transfer2)
+beta_values2[30:44,]
 
 ## ----------------- Table 2. Goodness-of-fit statistics for the estimated measurement and predictive models  --------------------
 
