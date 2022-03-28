@@ -248,6 +248,13 @@ opport ~~ transfer
 
 motiv ~~ transfer
 
+cent_timediff ~~ jres
+cent_timediff ~~ jdem
+cent_timediff ~~ eng
+cent_timediff ~~ opport
+cent_timediff ~~ motiv
+cent_timediff ~~ transfer
+
 '
 
 fit_transfer <- sem(transfer_corr_model_rel, data = work_data2, estimator = 'MLR', std.lv = TRUE)
