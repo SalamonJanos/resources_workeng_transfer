@@ -99,7 +99,7 @@ resources_factor <- '
 res_factor =~ jdr1 + jdr3 + jdr5 + jdr7 + jdr11' 
 
 fit_resources <- cfa(resources_factor, data = work_data2, estimator = 'MLM')
-resources_rel <- as.data.frame(reliability(fit_resources))
+resources_rel <- as.data.frame(semTools::reliability(fit_resources))
 
 
 # calculating Cronbach alpha for Job demands
@@ -107,7 +107,7 @@ demands_factor <- '
 dem_factor =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10'
 
 fit_demands <- cfa(demands_factor, data = work_data2, estimator = 'MLM')
-demands_rel <- as.data.frame(reliability(fit_demands))
+demands_rel <- as.data.frame(semTools::reliability(fit_demands))
 
 
 # calculating Cronbach alpha for Engagement
@@ -115,7 +115,7 @@ engagement_factor <- '
 eng     =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9'
 
 fit_engagement <- cfa(engagement_factor, data = work_data2, estimator = 'MLM')
-eng_rel <- as.data.frame(reliability(fit_engagement))
+eng_rel <- as.data.frame(semTools::reliability(fit_engagement))
 
 
 # calculating Cronbach alpha for Motivation
@@ -123,7 +123,7 @@ motivation_factor <- '
 motiv_factor =~ mot26 + mot28 + mot212'
 
 fit_motivation <- cfa(motivation_factor, data = work_data2, estimator = 'MLM')
-motiv_rel <- as.data.frame(reliability(fit_motivation))
+motiv_rel <- as.data.frame(semTools::reliability(fit_motivation))
 
 
 # calculating Cronbach alpha for Opportunity
@@ -131,7 +131,7 @@ opportunity_factor <- '
 opport_factor =~ opp37 + opp39 + opp312'
 
 fit_opportunity <- cfa(opportunity_factor, data = work_data2, estimator = 'MLM')
-opport_rel <- as.data.frame(reliability(fit_opportunity))
+opport_rel <- as.data.frame(semTools::reliability(fit_opportunity))
 
 
 # calculating Cronbach alpha for Transfer
@@ -139,7 +139,7 @@ transfer_factor <- '
 use_factor =~ use1 + use3 + use5 + use7'
 
 fit_transf <- cfa(transfer_factor, data = work_data2, estimator = 'MLM')
-transfer_rel <- as.data.frame(reliability(fit_transf))
+transfer_rel <- as.data.frame(semTools::reliability(fit_transf))
 
 
 reliabilities <- cbind(resources_rel, demands_rel, eng_rel, motiv_rel, opport_rel, transfer_rel)
@@ -272,13 +272,6 @@ opport ~~ motiv
 opport ~~ transfer
 
 motiv ~~ transfer
-
-cent_timediff ~~ jres
-cent_timediff ~~ jdem
-cent_timediff ~~ eng
-cent_timediff ~~ opport
-cent_timediff ~~ motiv
-cent_timediff ~~ transfer
 
 '
 
@@ -695,52 +688,6 @@ save_as_docx("Table 1. Bivariate correlations between latent variables" = design
 
 ## ----------------------------------------------- MAIN ANALYSIS ------------------------------------------
 
-
-# predictive model --------------------------------------------------------
-
-# transfer model 
-transfer_model0 <- '
-# regressions
-jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11 
-jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
-
-eng  =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
-
-opport =~ opp37 + opp39 + opp312
-motiv =~ mot26 + mot28 + mot212
-transfer =~ use1 + use3 + use5 + use7
-
-
-# paths
-transfer ~ opport + motiv + eng + jres + jdem
-
-opport ~ eng + jres + jdem
-
-motiv ~ eng + jres + jdem
-
-eng ~ jres + jdem
-
-
-# correlations
-jres ~~ jdem
-opport ~~ motiv
-'
-
-
-fit_transfer0 <- sem(transfer_model0, data = work_data2, estimator = 'MLM')
-summary(fit_transfer0, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_fi0 <- round(fitMeasures(fit_transfer0)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
-                                                     "cfi.scaled", "tli.scaled", "rmsea.scaled", 
-                                                     "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
-                                                     "srmr", "aic", "bic")], 3)
-
-
-# For 95% bias-corrected bootstrapped confidence intervals (CIs)
-med_estimates0 <- parameterestimates(fit_transfer0, boot.ci.type = "bca.simple", standardized = TRUE)
-med_estimates0b <- med_estimates0[c(30:46),c("lhs", "op", "rhs", "est", "se", "pvalue", "ci.lower", "ci.upper", "std.all")]
-
-
-
 # predictive model with control variable ----------------------------------
 
 # transfer model 
@@ -772,7 +719,6 @@ opport ~~ motiv
 '
 
 
-# fit_transfer <- sem(transfer_model, data = work_data2, estimator = 'MLR')
 fit_transfer <- sem(transfer_model, data = work_data2, estimator = 'MLM')
 summary(fit_transfer, fit.measures = TRUE, standardized = TRUE, rsquare=T)
 fit_transfer_t1 <- round(fitMeasures(fit_transfer)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
@@ -782,13 +728,119 @@ fit_transfer_t1 <- round(fitMeasures(fit_transfer)[c("chisq.scaled", "df.scaled"
 
 
 lavInspect(fit_transfer, "rsquare")
-# transfer r2 = .684
-# eng r2 = .294
-# motiv r2 = .103
-# opport r2 = .137
+# transfer r2 = .686
+# eng r2 = .290
+# motiv r2 = .131
+# opport r2 = .153
 
-beta_values <- standardizedSolution(fit_transfer)
-beta_values[30:44,]
+
+# beta_values <- standardizedSolution(fit_transfer)
+beta_values <- parameterestimates(fit_transfer, boot.ci.type = "bca.simple", standardized = TRUE)
+beta_values[30:46,]
+
+
+
+# Predictive model - Mediation analysis -----------------------------------
+## all mediation models combined between job resources and transfer, and between job demands and transfer
+
+# job resources -> motivation to transfer -> transfer
+# job resources -> work engagement -> opportunity -> transfer
+# job demands -> work engagement -> opportunity -> transfer 
+
+
+modXall <- '
+jres =~  jdr1 + jdr3 + jdr5 + jdr7 + jdr11
+jdem =~ jdr2 + jdr4 + jdr6 + jdr8 + jdr10
+eng =~ uwes1 + uwes2 + uwes3 + uwes4 + uwes5 + uwes6 + uwes7 + uwes8 + uwes9
+motiv =~ mot26 + mot28 + mot212
+opport =~ opp37 + opp39 + opp312
+transfer =~ use1 + use3 + use5 + use7
+
+
+ # a1 path
+ eng ~ a1 * jres + cent_timediff
+
+ # b1 path
+ transfer ~ b1 * eng + cent_timediff
+ 
+ # a2 path
+ opport ~ a2 * jres + cent_timediff
+
+ # b2 path
+ transfer ~ b2 * opport
+ 
+ # d1 path
+ opport ~ d1 * eng
+
+ # a3 path
+ motiv ~ a3 * jres + cent_timediff
+
+ # b3 path
+ transfer ~ b3 * motiv
+
+ # d2 path
+ motiv ~ d2 * eng
+
+  # c prime path 
+ transfer ~ cp * jres
+
+
+
+ # indirect and total effects
+ a1b1 := a1 * b1          #res -> we -> transfer
+ a2b2 := a2 * b2          #res -> opp -> transfer
+ a3b3 := a3 * b3          #res -> mot -> transfer
+ a1d1b2 := a1 * d1 * b2   #res -> we -> opp -> transfer
+ a1d2b3 := a1 * d2 * b3   #res -> we -> mot -> transfer
+ 
+ tot_ind := a1b1 + a2b2 + a3b3 + a1d1b2 + a1d2b3
+ total := cp + a1b1 + a2b2 + a3b3 + a1d1b2 + a1d2b3
+
+
+ # f1 path
+ eng ~ f1 * jdem
+
+ # f2 path
+ opport ~ f2 * jdem
+
+ # f3 path
+ motiv ~ f3 * jdem
+
+
+ # c prime path 
+ transfer ~ cpd * jdem
+
+
+ # indirect and total effects
+ dem_f1b1 := f1 * b1          #dem -> we -> transfer
+ dem_f2b2 := f2 * b2          #dem -> opp -> transfer
+ dem_f3b3 := f3 * b3          #dem -> mot -> transfer
+ dem_f1d1b2 := f1 * d1 * b2   #dem -> we -> opp -> transfer
+ dem_f1d2b3 := f1 * d2 * b3   #dem -> we -> mot -> transfer
+
+ dem_tot_ind := dem_f1b1 + dem_f2b2 + dem_f3b3 + dem_f1d1b2 + dem_f1d2b3
+ dem_total := cpd + dem_f1b1 + dem_f2b2 + dem_f3b3 + dem_f1d1b2 + dem_f1d2b3
+
+# correlations
+jres ~~ jdem
+opport ~~ motiv
+'
+
+
+fit_modXall <- sem(modXall, data = work_data2, se = "bootstrap", bootstrap = 5000)
+
+med_estimates_fullXall <- parameterestimates(fit_modXall, boot.ci.type = "bca.simple", standardized = TRUE)
+
+med_estimatesbx <- med_estimates_fullXall[c(30:46, 85:98),c("lhs", "op", "rhs", "label", "est", "pvalue", "ci.lower", "ci.upper", "std.all")]
+
+
+summary(fit_modXall, fit.measures = TRUE, standardized = TRUE, rsquare=T)
+
+fit_transfer_t1 <- round(fitMeasures(fit_modXall)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+                                                      "cfi.scaled", "tli.scaled", "rmsea.scaled", 
+                                                      "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
+                                                      "srmr", "aic", "bic")], 3)
+
 
 
 
@@ -828,24 +880,24 @@ jres ~~ jdem
 opport ~~ motiv
 '
 
-
-# fit_transfer2 <- sem(transfer_model2, data = work_data3, estimator = 'MLR')
 fit_transfer2 <- sem(transfer_model2, data = work_data3, estimator = 'MLM')
 summary(fit_transfer2, fit.measures = TRUE, standardized = TRUE, rsquare=T)
-fit_transfer_t1_b <- round(fitMeasures(fit_transfer2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
+fit_transfer_t1 <- round(fitMeasures(fit_transfer2)[c("chisq.scaled", "df.scaled", "pvalue.scaled",
                                                         "cfi.scaled", "tli.scaled", "rmsea.scaled", 
                                                         "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", 
                                                         "srmr", "aic", "bic")], 3)
 
 
 lavInspect(fit_transfer2, "rsquare")
-# transfer r2 = .684
-# eng r2 = .294
-# motiv r2 = .103
-# opport r2 = .137
+# transfer r2 = .715
+# eng r2 = .310
+# motiv r2 = .140
+# opport r2 = .174
 
-beta_values2 <- standardizedSolution(fit_transfer2)
-beta_values2[30:44,]
+
+# beta_values2 <- standardizedSolution(fit_transfer2)
+beta_values2 <- parameterestimates(fit_transfer2, boot.ci.type = "bca.simple", standardized = TRUE)
+beta_values2[30:74,]
 
 
 
@@ -918,7 +970,7 @@ designed_table <- combined_fit_table %>%
                      "* p < .05, ** p < .01, *** p < .001"))
 
 # saving final table to word file
-save_as_docx("Table 2. Goodness-of-fit statistics for the predictive model" = designed_table, path = "Table 2 - Goodness-of-fit statistics - predictive model table.docx")
+save_as_docx("Table 2. Goodness-of-fit statistics for the predictive model" = designed_table, path = "Table S1 - Goodness-of-fit statistics - predictive model table.docx")
 
 
 
